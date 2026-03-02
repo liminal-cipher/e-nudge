@@ -14,7 +14,7 @@ import models
 app = FastAPI()
 
 # --- [1. Azure Blob Storage 설정] ---
-AZURE_STORAGE_CONNECTION_STRING = "여기에_실제_연결_문자열_입력"
+AZURE_STORAGE_CONNECTION_STRING = "***REMOVED***"
 CONTAINER_NAME = "images" 
 
 try:
