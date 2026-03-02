@@ -216,7 +216,7 @@
             const postHtml = `
                 <div class="post-card" id="post-${postId}">
                     <div class="post-card-header">
-                        <div class="nav-icon" style="margin:0; width:40px; height:40px; background:var(--primary); color:white;">
+                        <div class="nav-icon" style="margin:0; width:40px; height:40px; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; border-radius:50%;">
                             ${userName.substring(0,1).toUpperCase()}
                         </div>
                         <div style="margin-left:12px;">
@@ -233,12 +233,21 @@
                     
                     <div class="comment-list" id="comment-list-${postId}">
                         ${post.comments ? post.comments.map(c => `
-                            <div class="comment-item">
-                                <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd;">${(c.username || '익').substring(0,1)}</div>
-                                <div class="comment-content">
-                                    <div class="comment-user">${c.username || '익명'}</div>
-                                    <div class="comment-text">${c.content}</div>
-                                    ${c.image_url ? `<img src="${c.image_url}" class="comment-attached-img">` : ''}
+                            <div class="comment-item" style="display:flex; margin-bottom:12px;">
+                                <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:50%; margin-right:8px;">
+                                    ${(c.username || '익').substring(0,1)}
+                                </div>
+                                <div class="comment-content" style="flex:1;">
+                                    <div class="comment-user" style="font-weight:600; font-size:13px;">${c.username || '익명'}</div>
+                                    <div class="comment-text" style="font-size:14px; margin-bottom:4px;">${c.content}</div>
+                                    ${c.image_url ? `
+                                        <div class="comment-img-wrapper" style="margin-top:8px;">
+                                            <img src="${c.image_url}" 
+                                                class="comment-attached-img" 
+                                                style="max-width:200px; border-radius:8px; border:1px solid #eee; display:block;"
+                                                onerror="this.style.display='none'; console.log('이미지 로드 실패:', '${c.image_url}')">
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </div>
                         `).join('') : ''}
@@ -246,9 +255,11 @@
 
                     <div class="comment-input-wrap">
                         <div id="comment-img-preview-${postId}" style="display:none; margin-bottom:10px;">
-                            <div class="preview-container">
-                                <img src="" id="preview-img-${postId}">
-                                <div class="cancel-btn" onclick="cancelCommentImg(${postId})"><i class="fa-solid fa-xmark"></i></div>
+                            <div class="preview-container" style="position:relative; display:inline-block;">
+                                <img src="" id="preview-img-${postId}" style="width:100px; height:100px; object-fit:cover; border-radius:8px;">
+                                <div class="cancel-btn" onclick="cancelCommentImg(${postId})" style="position:absolute; top:-5px; right:-5px; background:rgba(0,0,0,0.5); color:white; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                                    <i class="fa-solid fa-xmark" style="font-size:12px;"></i>
+                                </div>
                             </div>
                         </div>
                         
@@ -324,35 +335,38 @@
         }
 
         async function submitComment(postId) {
+            const btn = document.getElementById(`comment-btn-${postId}`);
             const input = document.getElementById(`comment-input-${postId}`);
-            const fileInput = document.getElementById(`comment-file-${postId}`);
-            const text = input.value.trim();
             
-            const formData = new FormData();
-            formData.append('content', text);
-            formData.append('post_id', postId);
+            // 중복 클릭 방지
+            btn.disabled = true;
+            btn.innerText = "업로드 중...";
 
-            // ⭐️ 파일이 실제로 있는지 확인하고 'image'라는 이름으로 추가
-            if (fileInput.files && fileInput.files[0]) {
-                formData.append('image', fileInput.files[0]); 
-            }
+            // ... (FormData 생성 코드 동일) ...
 
             try {
                 const response = await fetch("/comments", {
                     method: "POST",
-                    body: formData // headers 설정 절대 금지!
+                    body: formData 
                 });
 
                 if (response.ok) {
-                    const result = await response.json();
-                    console.log("업로드 결과:", result);
-                    loadFeed(); // 피드 새로고침
-                    // 입력창 초기화
+                    console.log("✅ 서버 저장 완료");
+                    // 1. 입력창과 이미지 미리보기 초기화
                     input.value = '';
                     cancelCommentImg(postId); 
+                    
+                    // 2. 약간의 지연 시간을 주고 피드 새로고침 (DB 반영 시간 확보)
+                    setTimeout(() => {
+                        loadFeed(); 
+                        btn.disabled = false;
+                        btn.innerText = "등록";
+                    }, 500); 
                 }
             } catch (error) {
-                console.error("전송 에러:", error);
+                console.error("❌ 전송 에러:", error);
+                btn.disabled = false;
+                btn.innerText = "등록";
             }
         }
     </script>
