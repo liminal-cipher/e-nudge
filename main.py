@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
 import os
-from azure.storage.blob import BlobServiceClient
+from azure.storage.blob import BlobServiceClient, ContentSettings
 
 from database import get_db, engine
 import models
@@ -23,31 +23,32 @@ except Exception as e:
     print(f"⚠️ Storage 연결 설정 실패: {e}")
 
 async def upload_image_to_blob(file: UploadFile):
-    # 파일이 없거나 이름이 비어있으면 중단
     if not file or not file.filename:
-        print("❌ 업로드 시도 실패: 파일이 없습니다.")
         return None
     
     try:
-        # 고유 파일명 생성
+        await file.seek(0)
+        contents = await file.read()
+        
+        # 1. 파일 확장자에 따라 MIME 타입 설정 (png, jpg 등)
+        content_type = file.content_type # 브라우저가 보낸 타입 그대로 사용 (image/png 등)
+        
         ext = os.path.splitext(file.filename)[1]
-        if not ext: ext = ".jpg" # 확장자 없을 경우 기본값
         filename = f"{uuid.uuid4()}{ext}"
         
         blob_client = blob_service_client.get_blob_client(container=CONTAINER_NAME, blob=filename)
         
-        # 파일 데이터 읽기
-        contents = await file.read()
+        # 2. 업로드 시 content_settings에 타입을 명시! (핵심)
+        blob_client.upload_blob(
+            contents, 
+            overwrite=True,
+            content_settings=ContentSettings(content_type=content_type) # 👈 이 줄이 브라우저에서 보이게 만듭니다.
+        )
         
-        # Azure에 실제 업로드 (데이터 타입 명시)
-        blob_client.upload_blob(contents, overwrite=True)
-        
-        # ⭐️ 업로드된 실제 URL 생성 및 반환
-        image_url = blob_client.url
-        print(f"✅ Azure 업로드 성공! URL: {image_url}")
-        return image_url
+        print(f"✅ 업로드 성공 (타입: {content_type}): {blob_client.url}")
+        return blob_client.url
     except Exception as e:
-        print(f"❌ Azure 업로드 중 서버 에러 발생: {str(e)}")
+        print(f"❌ Azure 업로드 실패: {e}")
         return None
 
 # --- [2. 게시글 로직] ---
