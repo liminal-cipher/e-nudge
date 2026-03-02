@@ -96,19 +96,23 @@ async def create_post(item: PostCreate, db: Session = Depends(get_db)):
 # --- [3. 댓글 로직 (Form 데이터 방식)] ---
 @app.post("/comments")
 async def create_comment(
-    content: str = Form(...),
+    content: Optional[str] = Form(None), # 👈 Form(...)에서 Form(None)으로 변경!
     post_id: int = Form(...),
     image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
     try:
+        # 이미지가 있거나 텍스트가 있거나 둘 중 하나는 있어야 저장 진행
+        if not content and not image:
+            raise HTTPException(status_code=400, detail="내용이나 이미지 중 하나는 필요합니다.")
+
         # 이미지 업로드 처리
         uploaded_url = await upload_image_to_blob(image) if image else None
         
         new_comment = models.Comment(
             post_id=post_id,
-            user_id=6, # 테스트용 유저 ID
-            content=content,
+            user_id=6,
+            content=content if content else "", # 👈 내용이 없으면 빈 문자열 저장
             image_url=uploaded_url,
             toxicity_score=0.0,
             label="safe"
