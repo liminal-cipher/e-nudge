@@ -34,7 +34,7 @@ class Comment(Base):
     post_id = Column(Integer, ForeignKey("posts.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     content = Column(NVARCHAR) # ⭐️ 한글 댓글을 위해 NVARCHAR(max)
-    image_url = Column(String, nullable=True)
+    image_url = Column(NVARCHAR, nullable=True)
     toxicity_score = Column(Float)
     created_at = Column(DateTime, server_default=func.now())
     label = Column(NVARCHAR)
