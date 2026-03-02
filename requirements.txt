@@ -5,3 +5,5 @@ sqlalchemy
 pyodbc
 python-dotenv
 jinja2
+azure-storage-blob
+python-multipart
