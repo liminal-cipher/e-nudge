@@ -328,30 +328,31 @@
             const fileInput = document.getElementById(`comment-file-${postId}`);
             const text = input.value.trim();
             
-            if (!text && (!fileInput.files || fileInput.files.length === 0)) return;
-
-            // ⭐️ FormData 사용 (멀티파트 전송)
             const formData = new FormData();
             formData.append('content', text);
             formData.append('post_id', postId);
-            if (fileInput.files[0]) {
-                formData.append('image', fileInput.files[0]);
+
+            // ⭐️ 파일이 실제로 있는지 확인하고 'image'라는 이름으로 추가
+            if (fileInput.files && fileInput.files[0]) {
+                formData.append('image', fileInput.files[0]); 
             }
 
             try {
                 const response = await fetch("/comments", {
                     method: "POST",
-                    // FormData 사용 시 headers를 직접 설정하면 에러가 날 수 있으므로 생략
-                    body: formData 
+                    body: formData // headers 설정 절대 금지!
                 });
 
                 if (response.ok) {
-                    loadFeed();
-                } else {
-                    alert("업로드 실패! 다시 시도해주세요.");
+                    const result = await response.json();
+                    console.log("업로드 결과:", result);
+                    loadFeed(); // 피드 새로고침
+                    // 입력창 초기화
+                    input.value = '';
+                    cancelCommentImg(postId); 
                 }
             } catch (error) {
-                console.error("댓글 에러:", error);
+                console.error("전송 에러:", error);
             }
         }
     </script>

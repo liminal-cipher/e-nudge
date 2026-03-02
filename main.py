@@ -96,34 +96,38 @@ async def create_post(item: PostCreate, db: Session = Depends(get_db)):
 # --- [3. 댓글 로직 (Form 데이터 방식)] ---
 @app.post("/comments")
 async def create_comment(
-    content: Optional[str] = Form(None), # 👈 Form(...)에서 Form(None)으로 변경!
+    content: Optional[str] = Form(None),
     post_id: int = Form(...),
-    image: Optional[UploadFile] = File(None),
+    image: Optional[UploadFile] = File(None), # 여기서 이미지를 받음
     db: Session = Depends(get_db)
 ):
     try:
-        # 이미지가 있거나 텍스트가 있거나 둘 중 하나는 있어야 저장 진행
-        if not content and not image:
-            raise HTTPException(status_code=400, detail="내용이나 이미지 중 하나는 필요합니다.")
+        # 1. 사진이 있다면 먼저 Azure Blob Storage에 업로드하고 URL을 받아옵니다.
+        uploaded_url = None
+        if image and image.filename:
+            print(f"📸 이미지 업로드 시작: {image.filename}")
+            uploaded_url = await upload_image_to_blob(image)
+            print(f"✅ 업로드 완료된 URL: {uploaded_url}")
 
-        # 이미지 업로드 처리
-        uploaded_url = await upload_image_to_blob(image) if image else None
-        
+        # 2. 받아온 URL을 포함해서 DB에 저장합니다.
         new_comment = models.Comment(
             post_id=post_id,
             user_id=6,
-            content=content if content else "", # 👈 내용이 없으면 빈 문자열 저장
-            image_url=uploaded_url,
+            content=content if content else "",
+            image_url=uploaded_url, # 👈 이 변수에 URL이 반드시 담겨야 함!
             toxicity_score=0.0,
             label="safe"
         )
+        
         db.add(new_comment)
         db.commit()
         db.refresh(new_comment)
-        return {"status": "success", "comment_id": new_comment.id}
+        
+        return {"status": "success", "image_url": uploaded_url}
+        
     except Exception as e:
         db.rollback()
-        print(f"❌ 댓글 저장 실패: {e}")
+        print(f"❌ 에러 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- [기본 경로 설정] ---
