@@ -335,39 +335,25 @@
         }
 
         async function submitComment(postId) {
-            const btn = document.getElementById(`comment-btn-${postId}`);
             const input = document.getElementById(`comment-input-${postId}`);
-            
-            // 중복 클릭 방지
-            btn.disabled = true;
-            btn.innerText = "업로드 중...";
+            const fileInput = document.getElementById(`comment-file-${postId}`);
+            const text = input.value.trim();
+            const file = fileInput.files[0]; // 👈 선택된 파일 가져오기
 
-            // ... (FormData 생성 코드 동일) ...
-
-            try {
-                const response = await fetch("/comments", {
-                    method: "POST",
-                    body: formData 
-                });
-
-                if (response.ok) {
-                    console.log("✅ 서버 저장 완료");
-                    // 1. 입력창과 이미지 미리보기 초기화
-                    input.value = '';
-                    cancelCommentImg(postId); 
-                    
-                    // 2. 약간의 지연 시간을 주고 피드 새로고침 (DB 반영 시간 확보)
-                    setTimeout(() => {
-                        loadFeed(); 
-                        btn.disabled = false;
-                        btn.innerText = "등록";
-                    }, 500); 
-                }
-            } catch (error) {
-                console.error("❌ 전송 에러:", error);
-                btn.disabled = false;
-                btn.innerText = "등록";
+            // ⭐️ 수정: 텍스트도 없고 파일도 없을 때만 전송 막기
+            if (!text && !file) {
+                alert("내용을 입력하거나 사진을 선택해주세요.");
+                return;
             }
+
+            const formData = new FormData();
+            formData.append('content', text); // 빈 문자열이어도 보냄
+            formData.append('post_id', postId);
+            if (file) {
+                formData.append('image', file);
+            }
+
+            // ... 이후 fetch 로직 동일 ...
         }
     </script>
 </body>
