@@ -94,26 +94,23 @@ async def create_post(item: PostCreate, db: Session = Depends(get_db)):
 # --- [3. 댓글 로직: 텍스트 + 이미지 통합] ---
 @app.post("/comments")
 async def create_comment(
-    content: str = Form(...),
+    content: Optional[str] = Form(None), # 👈 Form(...)에서 Form(None)으로 변경
     post_id: int = Form(...),
     image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
-    print(f"📩 댓글 요청 수신: post_id={post_id}, content={content}")
-    
-    # 1. 이미지 업로드 먼저 진행
-    uploaded_url = None
-    if image and image.filename:
-        uploaded_url = await upload_image_to_blob(image)
-        print(f"🔗 DB에 저장될 URL: {uploaded_url}")
-
-    # 2. DB 저장
     try:
+        # 내용도 없고 이미지도 없으면 그건 진짜 빈 댓글이라 막아야 함
+        if not content and not image:
+            raise HTTPException(status_code=400, detail="내용이나 이미지 중 하나는 필수입니다.")
+
+        uploaded_url = await upload_image_to_blob(image) if image else None
+        
         new_comment = models.Comment(
             post_id=post_id,
             user_id=6,
-            content=content,
-            image_url=uploaded_url, # 이 변수가 None이면 DB에도 NULL로 들어감
+            content=content if content else "", # 👈 내용 없으면 빈 문자열로 저장
+            image_url=uploaded_url,
             toxicity_score=0.0,
             label="safe"
         )
