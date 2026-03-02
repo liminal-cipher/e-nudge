@@ -8,13 +8,15 @@ import uuid
 import os
 from azure.storage.blob import BlobServiceClient
 
+# 우리가 만든 파일들 불러오기
 from database import get_db, engine
 import models
 
 app = FastAPI()
 
 # --- [1. Azure Blob Storage 설정] ---
-AZURE_STORAGE_CONNECTION_STRING = "여기에_복사한_연결_문자열_입력"
+# ⭐️ 실제 연결 문자열로 교체하세요 (깃허브 푸시 시 주의!)
+AZURE_STORAGE_CONNECTION_STRING = "여기에_연결_문자열_입력"
 CONTAINER_NAME = "images" 
 
 try:
@@ -23,21 +25,33 @@ except Exception as e:
     print(f"⚠️ Storage 연결 실패: {e}")
 
 async def upload_image_to_blob(file: UploadFile):
-    if not file: return None
-    ext = os.path.splitext(file.filename)[1]
-    filename = f"{uuid.uuid4()}{ext}"
-    blob_client = blob_service_client.get_blob_client(container=CONTAINER_NAME, blob=filename)
-    contents = await file.read()
-    blob_client.upload_blob(contents)
-    return blob_client.url
+    if not file or not file.filename:
+        return None
+    
+    try:
+        # 고유 파일명 생성
+        ext = os.path.splitext(file.filename)[1]
+        filename = f"{uuid.uuid4()}{ext}"
+        
+        blob_client = blob_service_client.get_blob_client(container=CONTAINER_NAME, blob=filename)
+        
+        # 파일 읽기 및 업로드
+        contents = await file.read()
+        blob_client.upload_blob(contents, overwrite=True)
+        
+        return blob_client.url
+    except Exception as e:
+        print(f"❌ 블롭 업로드 에러: {e}")
+        return None
 
-# --- [2. 게시글 로직 (기존 기능 복구)] ---
+# --- [2. 게시글 로직] ---
 class PostCreate(BaseModel):
     content: str
-    user: str
+    user: Optional[str] = "익명" # 필수 값이 아님을 명시하여 에러 방지
 
 @app.get("/posts")
 async def get_posts(db: Session = Depends(get_db)):
+    # 최신순 정렬
     posts = db.query(models.Post).order_by(models.Post.id.desc()).all()
     result = []
     for post in posts:
@@ -46,7 +60,7 @@ async def get_posts(db: Session = Depends(get_db)):
             comment_list.append({
                 "id": c.id,
                 "content": c.content,
-                "image_url": c.image_url, # 댓글 이미지 추가
+                "image_url": c.image_url,
                 "username": c.author.username if c.author else "익명",
                 "role": c.author.role if c.author else "user"
             })
@@ -63,15 +77,23 @@ async def get_posts(db: Session = Depends(get_db)):
 @app.post("/posts")
 async def create_post(item: PostCreate, db: Session = Depends(get_db)):
     try:
-        new_post = models.Post(body=item.content, user_id=4, status="active") # 민지 ID: 4
+        # 실제 DB에 존재하는 user_id(4)를 사용
+        new_post = models.Post(
+            title="새 게시글",
+            body=item.content, 
+            user_id=4, 
+            status="active"
+        )
         db.add(new_post)
         db.commit()
-        return {"status": "success"}
+        db.refresh(new_post)
+        return {"status": "success", "post_id": new_post.id}
     except Exception as e:
         db.rollback()
+        print(f"❌ 게시글 저장 실패: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- [3. 댓글 로직 (이미지 기능 통합)] ---
+# --- [3. 댓글 로직 (Form 데이터 방식)] ---
 @app.post("/comments")
 async def create_comment(
     content: str = Form(...),
@@ -79,20 +101,30 @@ async def create_comment(
     image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
-    uploaded_url = await upload_image_to_blob(image) if image else None
-    new_comment = models.Comment(
-        post_id=post_id,
-        user_id=6, # 테스트용 유저 ID
-        content=content,
-        image_url=uploaded_url,
-        toxicity_score=0.0,
-        label="safe"
-    )
-    db.add(new_comment)
-    db.commit()
-    return {"status": "success"}
+    try:
+        # 이미지 업로드 처리
+        uploaded_url = await upload_image_to_blob(image) if image else None
+        
+        new_comment = models.Comment(
+            post_id=post_id,
+            user_id=6, # 테스트용 유저 ID
+            content=content,
+            image_url=uploaded_url,
+            toxicity_score=0.0,
+            label="safe"
+        )
+        db.add(new_comment)
+        db.commit()
+        db.refresh(new_comment)
+        return {"status": "success", "comment_id": new_comment.id}
+    except Exception as e:
+        db.rollback()
+        print(f"❌ 댓글 저장 실패: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
+# --- [기본 경로 설정] ---
 templates = Jinja2Templates(directory="templates")
+
 @app.get("/", response_class=HTMLResponse)
 async def read_item(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})

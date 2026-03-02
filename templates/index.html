@@ -83,7 +83,7 @@
         .post-body { font-size: 16px; line-height: 1.6; margin-bottom: 20px; white-space: pre-wrap; }
         .post-actions { display: flex; gap: 20px; color: var(--text-sub); font-size: 14px; padding-bottom: 15px; border-bottom: 1px solid #f8f9fa; }
 
-        /* ✨ 댓글 입력창 수정 디테일 */
+        /* 댓글 입력창 */
         .comment-input-wrap { background: #f1f3f5; border-radius: 12px; padding: 15px; margin-top: 20px; }
         .comment-input-wrap textarea { 
             width: 100%; background: transparent; border: none; outline: none; 
@@ -157,8 +157,7 @@
                     </div>
                 </div>
 
-                <div id="feedContent">
-                    </div>
+                <div id="feedContent"></div>
             </div>
 
             <div class="right-sidebar">
@@ -186,6 +185,7 @@
                     const feed = document.getElementById('feedContent');
                     feed.innerHTML = ''; 
 
+                    // 아티스트 게시글 상단 정렬
                     posts.sort((a, b) => {
                         if (a.role === 'celebrity' && b.role !== 'celebrity') return -1;
                         if (a.role !== 'celebrity' && b.role === 'celebrity') return 1;
@@ -207,11 +207,11 @@
             const postId = post.id;
             const userName = post.username || "익명";
             const role = post.role || "user";
-            const postContent = post.body || post.content || "내용이 없습니다.";
+            const postContent = post.body || "내용이 없습니다.";
             const artistBadge = (role === 'celebrity') ? '<span class="artist-tag">ARTIST</span>' : '';
 
             const likeCount = (role === 'celebrity') ? '10,534' : '0';
-            const commentCount = (role === 'celebrity') ? '623' : (post.comments ? post.comments.length : 0);
+            const commentCount = post.comments ? post.comments.length : 0;
 
             const postHtml = `
                 <div class="post-card" id="post-${postId}">
@@ -267,7 +267,6 @@
             feed.insertAdjacentHTML('beforeend', postHtml);
         }
 
-        // 이미지 미리보기 로직
         function previewCommentImg(input, postId) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -276,13 +275,12 @@
                     const previewImg = document.getElementById(`preview-img-${postId}`);
                     previewImg.src = e.target.result;
                     previewArea.style.display = 'block';
-                    checkCommentLength(postId); // 이미지 선택 시에도 등록 버튼 활성화 체크
+                    checkCommentLength(postId);
                 }
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
-        // 이미지 선택 취소
         function cancelCommentImg(postId) {
             const fileInput = document.getElementById(`comment-file-${postId}`);
             const previewArea = document.getElementById(`comment-img-preview-${postId}`);
@@ -293,14 +291,15 @@
 
         async function submitNewPost() {
             const input = document.getElementById('mainPostInput');
-            const content = input.value.trim();
-            if (!content) return;
+            const contentText = input.value.trim();
+            if (!contentText) return;
 
             try {
                 const response = await fetch("/posts", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ body: content })
+                    // ⭐️ 중요: 백엔드 Pydantic 모델에 맞춰 'content' 필드로 전송
+                    body: JSON.stringify({ content: contentText, user: "나" })
                 });
                 if (response.ok) {
                     loadFeed();
@@ -320,7 +319,6 @@
             const input = document.getElementById(`comment-input-${id}`);
             const btn = document.getElementById(`comment-btn-${id}`);
             const fileInput = document.getElementById(`comment-file-${id}`);
-            // 텍스트가 있거나, 파일이 선택되어 있으면 활성화
             const hasContent = input.value.trim().length > 0 || (fileInput.files && fileInput.files.length > 0);
             btn.classList.toggle('active', hasContent);
         }
@@ -332,7 +330,7 @@
             
             if (!text && (!fileInput.files || fileInput.files.length === 0)) return;
 
-            // ⭐️ FormData 생성 (이미지 업로드를 위해)
+            // ⭐️ FormData 사용 (멀티파트 전송)
             const formData = new FormData();
             formData.append('content', text);
             formData.append('post_id', postId);
@@ -343,11 +341,14 @@
             try {
                 const response = await fetch("/comments", {
                     method: "POST",
-                    body: formData // multipart/form-data로 자동 설정됨
+                    // FormData 사용 시 headers를 직접 설정하면 에러가 날 수 있으므로 생략
+                    body: formData 
                 });
 
                 if (response.ok) {
                     loadFeed();
+                } else {
+                    alert("업로드 실패! 다시 시도해주세요.");
                 }
             } catch (error) {
                 console.error("댓글 에러:", error);
