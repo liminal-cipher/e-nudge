@@ -78,10 +78,25 @@
         /* 게시글 카드 */
         .post-card { background: var(--white); border: 1px solid var(--border); border-radius: 15px; margin-bottom: 20px; padding: 25px; animation: slideIn 0.4s ease-out; }
         .post-card-header { display: flex; align-items: center; margin-bottom: 15px; }
-        .artist-tag { background: var(--primary); color: white; font-size: 10px; padding: 2px 7px; border-radius: 10px; margin-left: 6px; }
+        .artist-badge-wrapper { display: flex; align-items: center; }
+        .artist-tag { background: var(--primary); color: white; font-size: 10px; padding: 2px 7px; border-radius: 10px; margin-left: 6px; font-weight: 700; }
         .post-time { color: var(--text-sub); font-size: 12px; margin-top: 2px; }
         .post-body { font-size: 16px; line-height: 1.6; margin-bottom: 20px; white-space: pre-wrap; }
         .post-actions { display: flex; gap: 20px; color: var(--text-sub); font-size: 14px; padding-bottom: 15px; border-bottom: 1px solid #f8f9fa; }
+
+        /* 댓글 스타일 */
+        .comment-item { display: flex; margin-top: 15px; animation: fadeIn 0.3s; align-items: flex-start; }
+        .comment-content { margin-left: 10px; background: #f8f9fa; padding: 8px 12px; border-radius: 10px; flex: 1; }
+        .comment-user { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+        .comment-text { font-size: 14px; line-height: 1.4; }
+        
+        /* ⭐️ 댓글 이미지 스타일 수정 */
+        .comment-attached-img { 
+            width: 120px; height: 120px; object-fit: cover; 
+            border-radius: 8px; margin-top: 8px; display: block; 
+            border: 1px solid #ddd; cursor: zoom-in; transition: transform 0.2s;
+        }
+        .comment-attached-img:hover { transform: scale(1.02); }
 
         /* 댓글 입력창 */
         .comment-input-wrap { background: #f1f3f5; border-radius: 12px; padding: 15px; margin-top: 20px; }
@@ -96,12 +111,6 @@
         }
         .btn-comment-submit.active { color: var(--primary); }
 
-        .comment-item { display: flex; margin-top: 15px; animation: fadeIn 0.3s; align-items: flex-start; }
-        .comment-content { margin-left: 10px; background: #f8f9fa; padding: 8px 12px; border-radius: 10px; flex: 1; }
-        .comment-user { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
-        .comment-text { font-size: 14px; line-height: 1.4; }
-        .comment-attached-img { width: 100%; max-width: 250px; border-radius: 8px; margin-top: 8px; display: block; border: 1px solid #eee; }
-
         /* 미리보기 스타일 */
         .preview-container { position: relative; display: inline-block; }
         .preview-container img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 1px solid #ddd; }
@@ -110,6 +119,19 @@
             border-radius: 50%; width: 18px; height: 18px; font-size: 10px; 
             display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
+
+        /* ⭐️ 모달 스타일 추가 */
+        .modal-overlay {
+            display: none; position: fixed; z-index: 10000; left: 0; top: 0;
+            width: 100%; height: 100%; background-color: rgba(0,0,0,0.95);
+            cursor: zoom-out; align-items: center; justify-content: center;
+        }
+        .modal-content { max-width: 90%; max-height: 90%; border-radius: 5px; animation: zoom 0.3s; }
+        .close-modal {
+            position: absolute; top: 20px; right: 35px; color: #fff;
+            font-size: 40px; font-weight: bold; cursor: pointer;
+        }
+        @keyframes zoom { from {transform:scale(0.8)} to {transform:scale(1)} }
 
         /* 우측 위젯 */
         .right-sidebar { width: 280px; }
@@ -126,7 +148,7 @@
 <body>
 
     <header class="header">
-        <div class="header-logo"><i class="fa-solid fa-feather-pointed"></i> <span>댓글 <b>넛지</b></span></div>
+        <div class="header-logo" onclick="location.reload()"><i class="fa-solid fa-feather-pointed"></i> <span>댓글 <b>넛지</b></span></div>
         <div class="search-bar"><i class="fa-solid fa-magnifying-glass" style="color:#adb5bd"></i><input type="text" placeholder="검색"></div>
         <div class="header-icons"><i class="fa-solid fa-shield-cat"></i><i class="fa-solid fa-bell"></i><i class="fa-solid fa-user"></i></div>
     </header>
@@ -174,6 +196,11 @@
         </div>
     </div>
 
+    <div id="imageModal" class="modal-overlay" onclick="closeImageModal()">
+        <span class="close-modal">&times;</span>
+        <img class="modal-content" id="fullImage">
+    </div>
+
     <script>
         window.addEventListener('DOMContentLoaded', loadFeed);
 
@@ -185,7 +212,6 @@
                     const feed = document.getElementById('feedContent');
                     feed.innerHTML = ''; 
 
-                    // 아티스트 게시글 상단 정렬
                     posts.sort((a, b) => {
                         if (a.role === 'celebrity' && b.role !== 'celebrity') return -1;
                         if (a.role !== 'celebrity' && b.role === 'celebrity') return 1;
@@ -220,7 +246,7 @@
                             ${userName.substring(0,1).toUpperCase()}
                         </div>
                         <div style="margin-left:12px;">
-                            <div style="font-weight:700; font-size:15px;">${userName} ${artistBadge}</div>
+                            <div class="artist-badge-wrapper" style="font-weight:700; font-size:15px;">${userName} ${artistBadge}</div>
                             <div class="post-time">${post.created_at ? new Date(post.created_at).toLocaleDateString() : '방금 전'}</div>
                         </div>
                     </div>
@@ -233,19 +259,19 @@
                     
                     <div class="comment-list" id="comment-list-${postId}">
                         ${post.comments ? post.comments.map(c => `
-                            <div class="comment-item" style="display:flex; margin-bottom:12px;">
+                            <div class="comment-item">
                                 <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:50%; margin-right:8px;">
                                     ${(c.username || '익').substring(0,1)}
                                 </div>
-                                <div class="comment-content" style="flex:1;">
-                                    <div class="comment-user" style="font-weight:600; font-size:13px;">${c.username || '익명'}</div>
-                                    <div class="comment-text" style="font-size:14px; margin-bottom:4px;">${c.content}</div>
+                                <div class="comment-content">
+                                    <div class="comment-user">${c.username || '익명'}</div>
+                                    <div class="comment-text">${c.content}</div>
                                     ${c.image_url ? `
-                                        <div class="comment-img-wrapper" style="margin-top:8px;">
+                                        <div class="comment-img-wrapper">
                                             <img src="${c.image_url}" 
                                                 class="comment-attached-img" 
-                                                style="max-width:200px; border-radius:8px; border:1px solid #eee; display:block;"
-                                                onerror="this.style.display='none'; console.log('이미지 로드 실패:', '${c.image_url}')">
+                                                onclick="openImageModal('${c.image_url}')"
+                                                onerror="this.style.display='none'">
                                         </div>
                                     ` : ''}
                                 </div>
@@ -255,11 +281,9 @@
 
                     <div class="comment-input-wrap">
                         <div id="comment-img-preview-${postId}" style="display:none; margin-bottom:10px;">
-                            <div class="preview-container" style="position:relative; display:inline-block;">
-                                <img src="" id="preview-img-${postId}" style="width:100px; height:100px; object-fit:cover; border-radius:8px;">
-                                <div class="cancel-btn" onclick="cancelCommentImg(${postId})" style="position:absolute; top:-5px; right:-5px; background:rgba(0,0,0,0.5); color:white; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
-                                    <i class="fa-solid fa-xmark" style="font-size:12px;"></i>
-                                </div>
+                            <div class="preview-container">
+                                <img src="" id="preview-img-${postId}">
+                                <div class="cancel-btn" onclick="cancelCommentImg(${postId})"><i class="fa-solid fa-xmark"></i></div>
                             </div>
                         </div>
                         
@@ -276,6 +300,21 @@
                 </div>
             `;
             feed.insertAdjacentHTML('beforeend', postHtml);
+        }
+
+        // ⭐️ 이미지 모달 열기/닫기 함수
+        function openImageModal(imgSrc) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('fullImage');
+            modal.style.display = "flex";
+            modalImg.src = imgSrc;
+            document.body.style.overflow = "hidden"; // 배경 스크롤 방지
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.style.display = "none";
+            document.body.style.overflow = "auto";
         }
 
         function previewCommentImg(input, postId) {
@@ -309,7 +348,6 @@
                 const response = await fetch("/posts", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    // ⭐️ 중요: 백엔드 Pydantic 모델에 맞춰 'content' 필드로 전송
                     body: JSON.stringify({ content: contentText, user: "나" })
                 });
                 if (response.ok) {
@@ -337,45 +375,38 @@
         async function submitComment(postId) {
             const btn = document.getElementById(`comment-btn-${postId}`);
             const input = document.getElementById(`comment-input-${postId}`);
-            const fileInput = document.getElementById(`comment-file-${postId}`); // 파일 인풋 가져오기
+            const fileInput = document.getElementById(`comment-file-${postId}`);
             
             const text = input.value.trim();
-            const file = fileInput.files[0]; // 선택된 파일 확인
+            const file = fileInput.files[0];
 
-            // 1. 유효성 검사: 텍스트도 없고 파일도 없으면 전송 중단
             if (!text && !file) {
                 alert("댓글 내용이나 사진 중 하나는 입력해주세요!");
                 return;
             }
 
-            // 버튼 비활성화 (중복 클릭 방지)
             btn.disabled = true;
             btn.innerText = "업로드 중...";
 
-            // 2. FormData 생성 및 데이터 담기
             const formData = new FormData();
-            formData.append('content', text); // 텍스트가 없어도 빈 값으로 보냄
+            formData.append('content', text);
             formData.append('post_id', postId);
             
             if (file) {
-                formData.append('image', file); // 'image'라는 이름으로 파일 추가
+                formData.append('image', file);
             }
 
             try {
                 const response = await fetch("/comments", {
                     method: "POST",
-                    body: formData // headers는 브라우저가 자동으로 설정하므로 생략
+                    body: formData 
                 });
 
                 if (response.ok) {
-                    console.log("✅ 서버 저장 완료");
-                    
-                    // 3. 입력창 및 이미지 미리보기 초기화
                     input.value = '';
-                    fileInput.value = ''; // 파일 선택값 초기화
-                    cancelCommentImg(postId); // 미리보기 UI 닫기
+                    fileInput.value = '';
+                    cancelCommentImg(postId);
                     
-                    // 4. 피드 새로고침
                     setTimeout(() => {
                         loadFeed(); 
                         btn.disabled = false;
@@ -383,14 +414,12 @@
                     }, 500); 
                 } else {
                     const errorData = await response.json();
-                    console.error("❌ 서버 에러:", errorData);
                     alert("등록 실패: " + (errorData.detail || "서버 오류"));
                     btn.disabled = false;
                     btn.innerText = "등록";
                 }
             } catch (error) {
                 console.error("❌ 전송 에러:", error);
-                alert("네트워크 에러가 발생했습니다.");
                 btn.disabled = false;
                 btn.innerText = "등록";
             }
