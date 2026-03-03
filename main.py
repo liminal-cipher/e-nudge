@@ -16,8 +16,8 @@ app = FastAPI()
 
 # --- [0. AI 모델 설정값] ---
 # Azure Portal의 Custom Vision -> Prediction 탭에서 확인한 값을 넣어주세요.
-CUSTOM_VISION_URL = "https://gdscs-prediction.cognitiveservices.azure.com/customvision/v3.0/Prediction/720991f1-25e4-4d32-968d-0e00abbb1166/classify/iterations/Korean%2Bnsfw/url"
-CUSTOM_VISION_KEY = "***REMOVED***"
+CUSTOM_VISION_URL = "https://gdscs.cognitiveservices.azure.com/"
+CUSTOM_VISION_KEY = "CoaHfafsWECf6ary5nnHeFQV2Ff6P7mkDBbxyL4QiETeYSbCrRkZJQQJ99CBACYeBjFXJ3w3AAAJACOG96Zf"
 
 # 텍스트 모델은 나중에 해결되면 여기에 정보를 넣으세요.
 TEXT_MODEL_URL = "실제_ML_Designer_URL"
