@@ -37,7 +37,7 @@ class Comment(Base):
     image_url = Column(NVARCHAR, nullable=True)
     toxicity_score = Column(Float)
     created_at = Column(DateTime, server_default=func.now())
-    label = Column(NVARCHAR)
+    label = Column(NVARCHAR(100))
 
     post = relationship("Post", back_populates="comments")
     author = relationship("User", back_populates="comments")
