@@ -403,6 +403,20 @@
                 });
 
                 if (response.ok) {
+                    const result = await response.json(); // 서버가 보낸 결과 읽기
+                    
+                    // 🚀 [핵심] 여기서 콘솔에 AI 분석 결과를 찍습니다!
+                    console.log("------- AI 분석 결과 -------");
+                    if (result.ai_result && result.ai_result.image) {
+                        const imgAi = result.ai_result.image;
+                        console.log(`🏷️ 태그명: ${imgAi.label}`);
+                        console.log(`📊 확률(Score): ${(imgAi.probability * 100).toFixed(2)}%`);
+                    } else {
+                        console.log("이미지 분석 결과가 없습니다.");
+                    }
+                    console.log("--------------------------");
+
+                    // 기존 로직 유지
                     input.value = '';
                     fileInput.value = '';
                     cancelCommentImg(postId);
@@ -413,15 +427,10 @@
                         btn.innerText = "등록";
                     }, 500); 
                 } else {
-                    const errorData = await response.json();
-                    alert("등록 실패: " + (errorData.detail || "서버 오류"));
-                    btn.disabled = false;
-                    btn.innerText = "등록";
+                    // ... 에러 처리 ...
                 }
             } catch (error) {
                 console.error("❌ 전송 에러:", error);
-                btn.disabled = false;
-                btn.innerText = "등록";
             }
         }
     </script>
