@@ -191,8 +191,11 @@ async def create_comment(
         return {
             "status": "success", 
             "image_url": uploaded_url, 
-            "ai_result": {"text": text_ai_res, "image": image_ai_res}
+            "ai_result": {
+                "text": text_ai_res, 
+                "image": image_ai_res  # 👈 여기에 커스텀 비전의 label과 probability가 들어있습니다.
         }
+}
         
     except Exception as e:
         db.rollback()
