@@ -344,18 +344,29 @@
             const contentText = input.value.trim();
             if (!contentText) return;
 
+            // 1. FormData 객체 생성
+            const formData = new FormData();
+            formData.append('content', contentText); // 서버에서 받을 필드명: content
+
             try {
                 const response = await fetch("/posts", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ content: contentText, user: "나" })
+                    // headers는 설정하지 않습니다 (브라우저가 FormData를 감지하면 자동으로 Boundary를 포함한 Multipart/form-data로 설정함)
+                    body: formData 
                 });
+
                 if (response.ok) {
                     loadFeed();
                     input.value = '';
                     checkPostLength();
+                } else {
+                    const errorDetail = await response.json();
+                    console.error("게시글 전송 실패:", errorDetail);
+                    alert("게시글 저장에 실패했습니다.");
                 }
-            } catch (error) { console.error("작성 에러:", error); }
+            } catch (error) { 
+                console.error("작성 에러:", error); 
+            }
         }
 
         function checkPostLength() {
