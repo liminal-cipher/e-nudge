@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends, HTTPException, File, UploadFile, Form, status
+from fastapi import FastAPI, Request, Depends, HTTPException, File, UploadFile, Form
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -7,6 +7,10 @@ from typing import List, Optional
 import uuid
 import os
 import httpx
+import re
+import emoji
+import joblib  # 추가: 모델 로드용
+from kiwipiepy import Kiwi  # 추가: 형태소 분석용
 from azure.storage.blob import BlobServiceClient, ContentSettings
 
 from database import get_db, engine
@@ -15,8 +19,20 @@ import models
 app = FastAPI()
 
 # --- [0. AI 모델 설정값] ---
+# 이미지: Azure Custom Vision
 CUSTOM_VISION_URL = "https://gdscs-prediction.cognitiveservices.azure.com/customvision/v3.0/Prediction/720991f1-25e4-4d32-968d-0e00abbb1166/classify/iterations/Iteration5/image"
 CUSTOM_VISION_KEY = "***REMOVED***"
+
+# 텍스트: 팀원의 ML 모델 로드
+try:
+    lr_model = joblib.load("lr_model.pkl")
+    tfidf_vectorizer = joblib.load("tfidf_vectorizer.pkl")
+    kiwi = Kiwi(typos="basic")
+    print("✅ [TEXT AI] 모델 및 벡터라이저 로드 성공")
+except Exception as e:
+    print(f"❌ [TEXT AI] 로드 실패: {e}")
+
+KEEP_TAGS = {'NNG', 'NNP', 'NP', 'VV', 'VA', 'VV-I', 'VA-I', 'VV-R', 'VA-R', 'MAG', 'MM', 'SW', 'IC'}
 
 # --- [1. Azure Blob Storage 설정] ---
 AZURE_STORAGE_CONNECTION_STRING = "***REMOVED***"
@@ -29,12 +45,52 @@ except Exception as e:
 
 # --- [AI 분석 보조 함수들] ---
 
+def clean_text(text):
+    """텍스트 정제"""
+    if not isinstance(text, str): return ""
+    text = emoji.replace_emoji(text, replace='')
+    text = re.sub(r'http\S+', '', text)
+    text = re.sub(r'[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9\s]', ' ', text)
+    text = re.sub(r'(.)\1{2,}', r'\1\1', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+def tokenize(text):
+    """형태소 분석"""
+    if not text: return ""
+    tokens = kiwi.tokenize(text, normalize_coda=True)
+    return ' '.join(t.form for t in tokens if t.tag in KEEP_TAGS)
+
 async def analyze_text_ai(text: str):
-    # 실제 텍스트 분석 로직이 필요하다면 여기에 추가 (현재는 기본값 반환)
-    if not text: return {"label": "safe", "score": 0.0}
-    return {"label": "safe", "score": 0.05}
+    """실제 ML 모델을 통한 텍스트 분석 및 스코어 출력"""
+    if not text: 
+        return {"label": "none", "score": 0.0}
+    
+    try:
+        cleaned = clean_text(text)
+        tokenized = tokenize(cleaned)
+        
+        if not tokenized:
+            return {"label": "none", "score": 0.0}
+
+        # 벡터화 및 예측
+        vector = tfidf_vectorizer.transform([tokenized])
+        probs = lr_model.predict_proba(vector)[0]
+        labels = ['none', 'offensive', 'hate']
+        
+        max_idx = probs.argmax()
+        result = {
+            "label": labels[max_idx], 
+            "score": float(probs[max_idx]) # 스코어 반환
+        }
+        print(f"📝 [TEXT AI] {text[:10]}... -> {result['label']} ({result['score']:.4f})")
+        return result
+    except Exception as e:
+        print(f"❌ [TEXT AI] 분석 오류: {e}")
+        return {"label": "error", "score": 0.0}
 
 async def analyze_image_ai(image_bytes: bytes):
+    """Custom Vision을 통한 이미지 분석 및 스코어 출력"""
     if not image_bytes: 
         return {"label": "no_image", "probability": 0.0}
     
@@ -44,28 +100,21 @@ async def analyze_image_ai(image_bytes: bytes):
             "Content-Type": "application/octet-stream"
         }
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                CUSTOM_VISION_URL, 
-                content=image_bytes, 
-                headers=headers, 
-                timeout=10.0
-            )
+            response = await client.post(CUSTOM_VISION_URL, content=image_bytes, headers=headers, timeout=10.0)
             
         if response.status_code == 200:
             result = response.json()
             if result.get('predictions'):
                 top_prediction = result['predictions'][0]
-                return {
+                res = {
                     "label": top_prediction['tagName'], 
-                    "probability": top_prediction['probability']
+                    "probability": float(top_prediction['probability']) # 스코어 반환
                 }
-            return {"label": "unknown", "probability": 0.0}
-        else:
-            print(f"⚠️ [IMAGE AI] API 에러 ({response.status_code}): {response.text}")
-            return {"label": "error", "probability": 0.0}
-            
+                print(f"🖼️ [IMAGE AI] {res['label']} ({res['probability']:.4f})")
+                return res
+        return {"label": "unknown", "probability": 0.0}
     except Exception as e:
-        print(f"❌ [IMAGE AI] 예외 발생: {str(e)}")
+        print(f"❌ [IMAGE AI] 예외: {e}")
         return {"label": "error", "probability": 0.0}
 
 async def upload_image_to_blob(contents: bytes, filename: str, content_type: str):
@@ -73,34 +122,26 @@ async def upload_image_to_blob(contents: bytes, filename: str, content_type: str
         ext = os.path.splitext(filename)[1]
         unique_filename = f"{uuid.uuid4()}{ext}"
         blob_client = blob_service_client.get_blob_client(container=CONTAINER_NAME, blob=unique_filename)
-        blob_client.upload_blob(
-            contents, 
-            overwrite=True,
-            content_settings=ContentSettings(content_type=content_type)
-        )
+        blob_client.upload_blob(contents, overwrite=True, content_settings=ContentSettings(content_type=content_type))
         return blob_client.url
     except Exception as e:
-        print(f"❌ Azure 업로드 실패: {e}")
         return None
 
-# --- [2. 게시글(Post) 로직 추가] ---
-class PostCreate(BaseModel):
-    body: str
-
-# --- [2. 게시글(Post) 로직 수정] ---
-
+# --- [2. 게시글(Post) 로직] ---
 @app.post("/posts")
 async def create_post(
-    title: str = Form("제목 없음"),      # 추가: models.py에 title이 NVARCHAR로 있으므로 받아주는게 좋습니다.
-    content: str = Form(...),          # 프론트에서 보내는 필드명
+    title: str = Form("제목 없음"),
+    content: str = Form(...),
     db: Session = Depends(get_db)
 ):
     try:
-        # models.py의 Post 클래스 구조에 맞게 매핑
+        # 게시글 본문도 텍스트 AI 분석 (필요 시)
+        text_res = await analyze_text_ai(content)
+        
         new_post = models.Post(
             title=title,
-            body=content,              # 프론트의 content를 DB의 body 필드에 저장
-            user_id=6,                 # 테스트용 유저 ID
+            body=content,
+            user_id=6,
             status="active"
         )
         db.add(new_post)
@@ -109,13 +150,9 @@ async def create_post(
         return new_post
     except Exception as e:
         db.rollback()
-        print(f"🔥 게시글 저장 에러: {str(e)}")
-        return JSONResponse(
-            status_code=500,
-            content={"status": "error", "detail": str(e)}
-        )
+        return JSONResponse(status_code=500, content={"status": "error", "detail": str(e)})
 
-# --- [3. 댓글 로직 수정본] ---
+# --- [3. 댓글(Comment) 로직] ---
 @app.post("/comments")
 async def create_comment(
     content: Optional[str] = Form(None),
@@ -124,26 +161,22 @@ async def create_comment(
     db: Session = Depends(get_db)
 ):
     try:
-        # 1. 기본 분석 결과 초기화
-        text_ai_res = {"label": "safe", "score": 0.0}
-        image_ai_res = {"label": "clean", "probability": 0.0} # 기본값은 깨끗함
+        text_ai_res = {"label": "none", "score": 0.0}
+        image_ai_res = {"label": "clean", "probability": 0.0}
         uploaded_url = None
 
-        # 2. 텍스트가 있을 때만 분석
+        # 1. 텍스트 분석 (ML 모델)
         if content:
             text_ai_res = await analyze_text_ai(content)
 
-        # 3. 이미지 처리 (이미지가 실제로 들어왔을 때만!)
-        # image.filename이 비어있는 경우도 체크하는 것이 안전합니다.
+        # 2. 이미지 처리 (Custom Vision + Azure)
         if image and image.filename: 
             image_data = await image.read()
-            
-            # 실제 파일 데이터가 있을 때만 Custom Vision 호출
             if len(image_data) > 0:
                 image_ai_res = await analyze_image_ai(image_data)
                 uploaded_url = await upload_image_to_blob(image_data, image.filename, image.content_type)
 
-        # 4. 판별 라벨 결정 (이미지 분석 결과가 있을 때만 적용)
+        # 3. 판별 라벨 결정 (최종 결과 통합)
         final_label = text_ai_res["label"]
         if image_ai_res["label"].lower() not in ["clean", "no_image", "error"]:
             if image_ai_res["probability"] > 0.6:
@@ -154,7 +187,7 @@ async def create_comment(
             user_id=6,
             content=content if content else "",
             image_url=uploaded_url,
-            toxicity_score=text_ai_res["score"],
+            toxicity_score=text_ai_res["score"], # 텍스트 모델의 스코어 저장
             label=final_label
         )
         
@@ -164,40 +197,32 @@ async def create_comment(
         
         return {
             "status": "success", 
-            "image_url": uploaded_url, 
             "ai_result": {
-                "text": text_ai_res, 
-                "image": image_ai_res
+                "text": text_ai_res,  # 텍스트 스코어 포함
+                "image": image_ai_res # 이미지 스코어 포함
             }
         }
-        
     except Exception as e:
         db.rollback()
-        print(f"🔥 서버 에러 상세: {str(e)}")
-        return JSONResponse(
-            status_code=500, 
-            content={"status": "error", "detail": str(e)}
-        )
+        return JSONResponse(status_code=500, content={"detail": str(e)})
 
-# --- [4. 조회 및 템플릿 로직] ---
+# --- [4. 조회 및 템플릿] ---
 @app.get("/posts")
 async def get_posts(db: Session = Depends(get_db)):
     posts = db.query(models.Post).order_by(models.Post.id.desc()).all()
     result = []
     for post in posts:
-        comment_list = []
-        for c in post.comments:
-            comment_list.append({
-                "id": c.id, "content": c.content, "image_url": c.image_url,
-                "username": c.author.username if c.author else "익명",
-                "role": c.author.role if c.author else "user"
-            })
         result.append({
             "id": post.id, "body": post.body,
             "username": post.author.username if post.author else "익명",
             "role": post.author.role if post.author else "user",
             "created_at": post.created_at.isoformat() if post.created_at else None,
-            "comments": comment_list
+            "comments": [{
+                "id": c.id, "content": c.content, "image_url": c.image_url,
+                "username": c.author.username if c.author else "익명",
+                "label": c.label,
+                "score": c.toxicity_score
+            } for c in post.comments]
         })
     return result
 

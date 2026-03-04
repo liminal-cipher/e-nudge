@@ -14,6 +14,8 @@
             --text-main: #333;
             --text-sub: #888;
             --border: #eeeeee;
+            --safe: #28a745;
+            --danger: #ff5a5a;
         }
 
         body { font-family: 'Pretendard', sans-serif; background-color: var(--bg); margin: 0; color: var(--text-main); }
@@ -86,15 +88,16 @@
 
         /* 댓글 스타일 */
         .comment-item { display: flex; margin-top: 15px; animation: fadeIn 0.3s; align-items: flex-start; }
-        .comment-content { margin-left: 10px; background: #f8f9fa; padding: 8px 12px; border-radius: 10px; flex: 1; }
-        .comment-user { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
-        .comment-text { font-size: 14px; line-height: 1.4; }
+        .comment-content { margin-left: 10px; background: #f8f9fa; padding: 10px 14px; border-radius: 12px; flex: 1; }
+        .comment-user-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .comment-user { font-weight: 700; font-size: 13px; }
+        .ai-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; color: white; font-weight: 600; text-transform: uppercase; }
+        .comment-text { font-size: 14px; line-height: 1.4; color: #444; }
         
-        /* ⭐️ 댓글 이미지 스타일 수정 */
         .comment-attached-img { 
-            width: 120px; height: 120px; object-fit: cover; 
-            border-radius: 8px; margin-top: 8px; display: block; 
-            border: 1px solid #ddd; cursor: zoom-in; transition: transform 0.2s;
+            width: 150px; height: 150px; object-fit: cover; 
+            border-radius: 8px; margin-top: 10px; display: block; 
+            border: 1px solid #ddd; cursor: zoom-in; transition: 0.2s;
         }
         .comment-attached-img:hover { transform: scale(1.02); }
 
@@ -120,17 +123,13 @@
             display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
 
-        /* ⭐️ 모달 스타일 추가 */
+        /* 모달 스타일 */
         .modal-overlay {
             display: none; position: fixed; z-index: 10000; left: 0; top: 0;
-            width: 100%; height: 100%; background-color: rgba(0,0,0,0.95);
+            width: 100%; height: 100%; background-color: rgba(0,0,0,0.9);
             cursor: zoom-out; align-items: center; justify-content: center;
         }
         .modal-content { max-width: 90%; max-height: 90%; border-radius: 5px; animation: zoom 0.3s; }
-        .close-modal {
-            position: absolute; top: 20px; right: 35px; color: #fff;
-            font-size: 40px; font-weight: bold; cursor: pointer;
-        }
         @keyframes zoom { from {transform:scale(0.8)} to {transform:scale(1)} }
 
         /* 우측 위젯 */
@@ -170,7 +169,7 @@
                         <div class="nav-icon" style="width:35px; height:35px; margin:0; background:var(--primary); color:white;">ME</div>
                         <span class="user-label">나의 소식 남기기</span>
                     </div>
-                    <textarea id="mainPostInput" placeholder="오늘 어떤 일이 있었나요? 팬들과 공유해보세요!" oninput="checkPostLength()"></textarea>
+                    <textarea id="mainPostInput" placeholder="오늘 어떤 일이 있었나요?" oninput="checkPostLength()"></textarea>
                     <div class="write-footer">
                         <div class="write-tools">
                             <i class="fa-regular fa-image" style="cursor:not-allowed; opacity:0.5;"></i> <i class="fa-regular fa-face-smile"></i>
@@ -184,7 +183,7 @@
 
             <div class="right-sidebar">
                 <div class="widget">
-                    <div class="widget-title"><i class="fa-solid fa-chart-simple" style="color:var(--primary); margin-right:8px;"></i> 넛지 통계</div>
+                    <div class="widget-title"><i class="fa-solid fa-chart-simple" style="color:var(--primary); margin-right:8px;"></i> AI 분석 통계</div>
                     <div class="stat-grid">
                         <div class="stat-box"><div class="stat-num" id="totalPosts" style="color:var(--primary)">0</div><div style="font-size:11px; color:var(--text-sub);">게시글</div></div>
                         <div class="stat-box"><div class="stat-num" style="color:#ffcc00">0</div><div style="font-size:11px; color:var(--text-sub);">주의</div></div>
@@ -197,7 +196,6 @@
     </div>
 
     <div id="imageModal" class="modal-overlay" onclick="closeImageModal()">
-        <span class="close-modal">&times;</span>
         <img class="modal-content" id="fullImage">
     </div>
 
@@ -211,72 +209,61 @@
                     let posts = await response.json();
                     const feed = document.getElementById('feedContent');
                     feed.innerHTML = ''; 
-
-                    posts.sort((a, b) => {
-                        if (a.role === 'celebrity' && b.role !== 'celebrity') return -1;
-                        if (a.role !== 'celebrity' && b.role === 'celebrity') return 1;
-                        return 0;
-                    });
-
                     posts.forEach(post => renderPostToFeed(post));
-
-                    const totalPostsEl = document.getElementById('totalPosts');
-                    if (totalPostsEl) totalPostsEl.innerText = posts.length;
+                    document.getElementById('totalPosts').innerText = posts.length;
                 }
-            } catch (error) {
-                console.error("데이터 로딩 실패:", error);
-            }
+            } catch (error) { console.error("피드 로드 실패:", error); }
         }
 
         function renderPostToFeed(post) {
             const feed = document.getElementById('feedContent');
             const postId = post.id;
             const userName = post.username || "익명";
-            const role = post.role || "user";
-            const postContent = post.body || "내용이 없습니다.";
-            const artistBadge = (role === 'celebrity') ? '<span class="artist-tag">ARTIST</span>' : '';
-
-            const likeCount = (role === 'celebrity') ? '10,534' : '0';
-            const commentCount = post.comments ? post.comments.length : 0;
-
+            
             const postHtml = `
                 <div class="post-card" id="post-${postId}">
                     <div class="post-card-header">
-                        <div class="nav-icon" style="margin:0; width:40px; height:40px; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+                        <div class="nav-icon" style="margin:0; width:40px; height:40px; background:var(--primary); color:white; border-radius:50%; font-size:16px;">
                             ${userName.substring(0,1).toUpperCase()}
                         </div>
                         <div style="margin-left:12px;">
-                            <div class="artist-badge-wrapper" style="font-weight:700; font-size:15px;">${userName} ${artistBadge}</div>
-                            <div class="post-time">${post.created_at ? new Date(post.created_at).toLocaleDateString() : '방금 전'}</div>
+                            <div class="artist-badge-wrapper" style="font-weight:700; font-size:15px;">${userName} ${post.role === 'celebrity' ? '<span class="artist-tag">ARTIST</span>' : ''}</div>
+                            <div class="post-time">방금 전</div>
                         </div>
                     </div>
-                    <div class="post-body">${postContent}</div> 
-                    
+                    <div class="post-body">${post.body}</div> 
                     <div class="post-actions">
-                        <span><i class="fa-regular fa-heart"></i> ${likeCount}</span>
-                        <span><i class="fa-regular fa-comment"></i> ${commentCount}</span>
+                        <span><i class="fa-regular fa-heart"></i> 0</span>
+                        <span><i class="fa-regular fa-comment"></i> ${post.comments ? post.comments.length : 0}</span>
                     </div>
                     
                     <div class="comment-list" id="comment-list-${postId}">
-                        ${post.comments ? post.comments.map(c => `
-                            <div class="comment-item">
-                                <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:50%; margin-right:8px;">
-                                    ${(c.username || '익').substring(0,1)}
-                                </div>
-                                <div class="comment-content">
-                                    <div class="comment-user">${c.username || '익명'}</div>
-                                    <div class="comment-text">${c.content}</div>
-                                    ${c.image_url ? `
-                                        <div class="comment-img-wrapper">
-                                            <img src="${c.image_url}" 
-                                                class="comment-attached-img" 
-                                                onclick="openImageModal('${c.image_url}')"
-                                                onerror="this.style.display='none'">
+                        ${post.comments ? post.comments.map(c => {
+                            // AI 스코어에 따른 색상 및 텍스트 결정
+                            const isUnsafe = c.label !== 'none' && c.label !== 'safe';
+                            const badgeBg = isUnsafe ? 'var(--danger)' : 'var(--safe)';
+                            const displayScore = c.score ? (c.score * 100).toFixed(1) : '0.0';
+
+                            return `
+                                <div class="comment-item">
+                                    <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd; border-radius:50%; margin-right:8px; flex-shrink:0;">
+                                        ${(c.username || '익').substring(0,1)}
+                                    </div>
+                                    <div class="comment-content">
+                                        <div class="comment-user-row">
+                                            <span class="comment-user">${c.username || '익명'}</span>
+                                            <span class="ai-badge" style="background:${badgeBg}">
+                                                ${c.label} (${displayScore}%)
+                                            </span>
                                         </div>
-                                    ` : ''}
+                                        <div class="comment-text">${c.content}</div>
+                                        ${c.image_url ? `
+                                            <img src="${c.image_url}" class="comment-attached-img" onclick="openImageModal('${c.image_url}')">
+                                        ` : ''}
+                                    </div>
                                 </div>
-                            </div>
-                        `).join('') : ''}
+                            `;
+                        }).join('') : ''}
                     </div>
 
                     <div class="comment-input-wrap">
@@ -286,9 +273,7 @@
                                 <div class="cancel-btn" onclick="cancelCommentImg(${postId})"><i class="fa-solid fa-xmark"></i></div>
                             </div>
                         </div>
-                        
                         <textarea id="comment-input-${postId}" placeholder="따뜻한 댓글을 남겨주세요..." oninput="checkCommentLength(${postId})"></textarea>
-                        
                         <div class="comment-btn-row">
                             <div class="comment-tools">
                                 <input type="file" id="comment-file-${postId}" style="display:none;" accept="image/*" onchange="previewCommentImg(this, ${postId})">
@@ -302,147 +287,90 @@
             feed.insertAdjacentHTML('beforeend', postHtml);
         }
 
-        // ⭐️ 이미지 모달 열기/닫기 함수
+        // --- 이미지 핸들링 함수 ---
         function openImageModal(imgSrc) {
             const modal = document.getElementById('imageModal');
-            const modalImg = document.getElementById('fullImage');
+            document.getElementById('fullImage').src = imgSrc;
             modal.style.display = "flex";
-            modalImg.src = imgSrc;
-            document.body.style.overflow = "hidden"; // 배경 스크롤 방지
+            document.body.style.overflow = "hidden";
         }
 
         function closeImageModal() {
-            const modal = document.getElementById('imageModal');
-            modal.style.display = "none";
+            document.getElementById('imageModal').style.display = "none";
             document.body.style.overflow = "auto";
         }
 
         function previewCommentImg(input, postId) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    const previewArea = document.getElementById(`comment-img-preview-${postId}`);
-                    const previewImg = document.getElementById(`preview-img-${postId}`);
-                    previewImg.src = e.target.result;
-                    previewArea.style.display = 'block';
+                reader.onload = e => {
+                    document.getElementById(`preview-img-${postId}`).src = e.target.result;
+                    document.getElementById(`comment-img-preview-${postId}`).style.display = 'block';
                     checkCommentLength(postId);
-                }
+                };
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
         function cancelCommentImg(postId) {
-            const fileInput = document.getElementById(`comment-file-${postId}`);
-            const previewArea = document.getElementById(`comment-img-preview-${postId}`);
-            fileInput.value = ""; 
-            previewArea.style.display = 'none';
+            document.getElementById(`comment-file-${postId}`).value = ""; 
+            document.getElementById(`comment-img-preview-${postId}`).style.display = 'none';
             checkCommentLength(postId);
         }
 
+        // --- 게시글/댓글 제출 함수 ---
         async function submitNewPost() {
             const input = document.getElementById('mainPostInput');
-            const contentText = input.value.trim();
-            if (!contentText) return;
-
-            // 1. FormData 객체 생성
+            if (!input.value.trim()) return;
             const formData = new FormData();
-            formData.append('content', contentText); // 서버에서 받을 필드명: content
+            formData.append('content', input.value.trim());
+            const response = await fetch("/posts", { method: "POST", body: formData });
+            if (response.ok) { input.value = ''; loadFeed(); }
+        }
+
+        async function submitComment(postId) {
+            const textInput = document.getElementById(`comment-input-${postId}`);
+            const fileInput = document.getElementById(`comment-file-${postId}`);
+            if (!textInput.value.trim() && !fileInput.files[0]) return;
+
+            const btn = document.getElementById(`comment-btn-${postId}`);
+            btn.disabled = true;
+            btn.innerText = "분석 중...";
+
+            const formData = new FormData();
+            formData.append('content', textInput.value.trim());
+            formData.append('post_id', postId);
+            if (fileInput.files[0]) formData.append('image', fileInput.files[0]);
 
             try {
-                const response = await fetch("/posts", {
-                    method: "POST",
-                    // headers는 설정하지 않습니다 (브라우저가 FormData를 감지하면 자동으로 Boundary를 포함한 Multipart/form-data로 설정함)
-                    body: formData 
-                });
-
+                const response = await fetch("/comments", { method: "POST", body: formData });
                 if (response.ok) {
-                    loadFeed();
-                    input.value = '';
-                    checkPostLength();
-                } else {
-                    const errorDetail = await response.json();
-                    console.error("게시글 전송 실패:", errorDetail);
-                    alert("게시글 저장에 실패했습니다.");
+                    const result = await response.json();
+                    
+                    // 🚀 콘솔에 상세 분석 로그 출력
+                    console.group(`🔍 AI 분석 완료 (Post #${postId})`);
+                    console.log("📝 텍스트 모델 결과:", result.ai_result.text);
+                    console.log("🖼️ 커스텀 비전 결과:", result.ai_result.image);
+                    console.groupEnd();
+
+                    // UI 초기화 및 갱신
+                    textInput.value = '';
+                    cancelCommentImg(postId);
+                    loadFeed(); 
                 }
-            } catch (error) { 
-                console.error("작성 에러:", error); 
-            }
+            } catch (err) { console.error("댓글 전송 실패", err); }
+            finally { btn.disabled = false; btn.innerText = "등록"; }
         }
 
         function checkPostLength() {
             const input = document.getElementById('mainPostInput');
-            const btn = document.getElementById('mainPostBtn');
-            btn.classList.toggle('active', input.value.trim().length > 0);
+            document.getElementById('mainPostBtn').classList.toggle('active', input.value.trim().length > 0);
         }
 
         function checkCommentLength(id) {
             const input = document.getElementById(`comment-input-${id}`);
-            const btn = document.getElementById(`comment-btn-${id}`);
-            const fileInput = document.getElementById(`comment-file-${id}`);
-            const hasContent = input.value.trim().length > 0 || (fileInput.files && fileInput.files.length > 0);
-            btn.classList.toggle('active', hasContent);
-        }
-
-        async function submitComment(postId) {
-            const btn = document.getElementById(`comment-btn-${postId}`);
-            const input = document.getElementById(`comment-input-${postId}`);
-            const fileInput = document.getElementById(`comment-file-${postId}`);
-            
-            const text = input.value.trim();
-            const file = fileInput.files[0];
-
-            if (!text && !file) {
-                alert("댓글 내용이나 사진 중 하나는 입력해주세요!");
-                return;
-            }
-
-            btn.disabled = true;
-            btn.innerText = "업로드 중...";
-
-            const formData = new FormData();
-            formData.append('content', text);
-            formData.append('post_id', postId);
-            
-            if (file) {
-                formData.append('image', file);
-            }
-
-            try {
-                const response = await fetch("/comments", {
-                    method: "POST",
-                    body: formData 
-                });
-
-                if (response.ok) {
-                    const result = await response.json(); // 서버가 보낸 결과 읽기
-                    
-                    // 🚀 [핵심] 여기서 콘솔에 AI 분석 결과를 찍습니다!
-                    console.log("------- AI 분석 결과 -------");
-                    if (result.ai_result && result.ai_result.image) {
-                        const imgAi = result.ai_result.image;
-                        console.log(`🏷️ 태그명: ${imgAi.label}`);
-                        console.log(`📊 확률(Score): ${(imgAi.probability * 100).toFixed(2)}%`);
-                    } else {
-                        console.log("이미지 분석 결과가 없습니다.");
-                    }
-                    console.log("--------------------------");
-
-                    // 기존 로직 유지
-                    input.value = '';
-                    fileInput.value = '';
-                    cancelCommentImg(postId);
-                    
-                    setTimeout(() => {
-                        loadFeed(); 
-                        btn.disabled = false;
-                        btn.innerText = "등록";
-                    }, 500); 
-                } else {
-                    // ... 에러 처리 ...
-                }
-            } catch (error) {
-                console.error("❌ 전송 에러:", error);
-            }
+            const hasFile = document.getElementById(`comment-file-${id}`).files.length > 0;
+            document.getElementById(`comment-btn-${id}`).classList.toggle('active', input.value.trim().length > 0 || hasFile);
         }
     </script>
 </body>
