@@ -239,8 +239,7 @@
                     
                     <div class="comment-list" id="comment-list-${postId}">
                         ${post.comments ? post.comments.map(c => {
-                            // AI 스코어에 따른 색상 및 텍스트 결정
-                            const isUnsafe = c.label !== 'none' && c.label !== 'safe';
+                            const isUnsafe = c.label !== 'none' && c.label !== 'safe' && !c.label.includes('clean');
                             const badgeBg = isUnsafe ? 'var(--danger)' : 'var(--safe)';
                             const displayScore = c.score ? (c.score * 100).toFixed(1) : '0.0';
 
@@ -287,7 +286,6 @@
             feed.insertAdjacentHTML('beforeend', postHtml);
         }
 
-        // --- 이미지 핸들링 함수 ---
         function openImageModal(imgSrc) {
             const modal = document.getElementById('imageModal');
             document.getElementById('fullImage').src = imgSrc;
@@ -318,7 +316,6 @@
             checkCommentLength(postId);
         }
 
-        // --- 게시글/댓글 제출 함수 ---
         async function submitNewPost() {
             const input = document.getElementById('mainPostInput');
             if (!input.value.trim()) return;
@@ -328,6 +325,7 @@
             if (response.ok) { input.value = ''; loadFeed(); }
         }
 
+        /* 🚀 [수정됨] 댓글 제출 함수: 타임아웃 및 예외 처리 강화 */
         async function submitComment(postId) {
             const textInput = document.getElementById(`comment-input-${postId}`);
             const fileInput = document.getElementById(`comment-file-${postId}`);
@@ -342,24 +340,43 @@
             formData.append('post_id', postId);
             if (fileInput.files[0]) formData.append('image', fileInput.files[0]);
 
+            // 타임아웃 설정을 위한 AbortController 추가
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30초 후 중단
+
             try {
-                const response = await fetch("/comments", { method: "POST", body: formData });
+                const response = await fetch("/comments", { 
+                    method: "POST", 
+                    body: formData,
+                    signal: controller.signal // 타임아웃 신호 연결
+                });
+
                 if (response.ok) {
                     const result = await response.json();
-                    
-                    // 🚀 콘솔에 상세 분석 로그 출력
                     console.group(`🔍 AI 분석 완료 (Post #${postId})`);
                     console.log("📝 텍스트 모델 결과:", result.ai_result.text);
                     console.log("🖼️ 커스텀 비전 결과:", result.ai_result.image);
                     console.groupEnd();
 
-                    // UI 초기화 및 갱신
                     textInput.value = '';
                     cancelCommentImg(postId);
                     loadFeed(); 
+                } else {
+                    alert("서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
                 }
-            } catch (err) { console.error("댓글 전송 실패", err); }
-            finally { btn.disabled = false; btn.innerText = "등록"; }
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    console.error("요청 시간이 너무 오래 걸립니다!");
+                    alert("분석 시간이 너무 오래 걸려 요청을 중단했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해 주세요.");
+                } else {
+                    console.error("댓글 전송 실패", err);
+                    alert("댓글을 전송하는 중 문제가 발생했습니다.");
+                }
+            } finally {
+                clearTimeout(timeoutId); // 타임아웃 해제
+                btn.disabled = false;
+                btn.innerText = "등록";
+            }
         }
 
         function checkPostLength() {

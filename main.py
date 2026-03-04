@@ -10,9 +10,10 @@ import httpx
 import re
 import emoji
 import joblib
+import asyncio  # 추가: 병렬 처리를 위함
 from kiwipiepy import Kiwi
 from azure.storage.blob import BlobServiceClient, ContentSettings
-from fastapi.concurrency import run_in_threadpool  # 필수: 동기 함수를 비동기로 감싸기 위함
+from fastapi.concurrency import run_in_threadpool
 
 from database import get_db, engine
 import models
@@ -23,7 +24,6 @@ app = FastAPI()
 CUSTOM_VISION_URL = "https://gdscs-prediction.cognitiveservices.azure.com/customvision/v3.0/Prediction/720991f1-25e4-4d32-968d-0e00abbb1166/classify/iterations/Iteration5/image"
 CUSTOM_VISION_KEY = "***REMOVED***"
 
-# 모델 로드 (전역 변수)
 try:
     lr_model = joblib.load("lr_model.pkl")
     tfidf_vectorizer = joblib.load("tfidf_vectorizer.pkl")
@@ -60,61 +60,39 @@ def tokenize(text):
     return ' '.join(t.form for t in tokens if t.tag in KEEP_TAGS)
 
 async def analyze_text_ai(text: str):
-    """실제 ML 모델 분석 - run_in_threadpool을 사용하여 Blocking 방지"""
     if not text: 
         return {"label": "none", "score": 0.0}
-    
     try:
-        # CPU 연산이 필요한 부분을 함수로 정의
         def predict_sync():
             cleaned = clean_text(text)
             tokenized = tokenize(cleaned)
-            if not tokenized:
-                return None
+            if not tokenized: return None
             vector = tfidf_vectorizer.transform([tokenized])
             return lr_model.predict_proba(vector)[0]
 
-        # 별도 스레드에서 실행하여 FastAPI 이벤트 루프가 멈추지 않게 함
         probs = await run_in_threadpool(predict_sync)
-        
-        if probs is None:
-            return {"label": "none", "score": 0.0}
+        if probs is None: return {"label": "none", "score": 0.0}
 
         labels = ['none', 'offensive', 'hate']
         max_idx = probs.argmax()
-        result = {
-            "label": labels[max_idx], 
-            "score": float(probs[max_idx])
-        }
-        print(f"📝 [TEXT AI] {text[:10]}... -> {result['label']} ({result['score']:.4f})")
-        return result
+        return {"label": labels[max_idx], "score": float(probs[max_idx])}
     except Exception as e:
         print(f"❌ [TEXT AI] 분석 오류: {e}")
         return {"label": "error", "score": 0.0}
 
 async def analyze_image_ai(image_bytes: bytes):
-    if not image_bytes: 
-        return {"label": "no_image", "probability": 0.0}
-    
+    if not image_bytes: return {"label": "no_image", "probability": 0.0}
     try:
-        headers = {
-            "Prediction-Key": CUSTOM_VISION_KEY,
-            "Content-Type": "application/octet-stream"
-        }
+        headers = {"Prediction-Key": CUSTOM_VISION_KEY, "Content-Type": "application/octet-stream"}
         async with httpx.AsyncClient() as client:
-            # 외부 API 호출이므로 timeout을 충분히 줌
-            response = await client.post(CUSTOM_VISION_URL, content=image_bytes, headers=headers, timeout=15.0)
+            # 타임아웃을 설정하여 무한 대기 방지
+            response = await client.post(CUSTOM_VISION_URL, content=image_bytes, headers=headers, timeout=10.0)
             
         if response.status_code == 200:
             result = response.json()
             if result.get('predictions'):
-                top_prediction = result['predictions'][0]
-                res = {
-                    "label": top_prediction['tagName'], 
-                    "probability": float(top_prediction['probability'])
-                }
-                print(f"🖼️ [IMAGE AI] {res['label']} ({res['probability']:.4f})")
-                return res
+                top = result['predictions'][0]
+                return {"label": top['tagName'], "probability": float(top['probability'])}
         return {"label": "unknown", "probability": 0.0}
     except Exception as e:
         print(f"❌ [IMAGE AI] 예외: {e}")
@@ -128,35 +106,10 @@ async def upload_image_to_blob(contents: bytes, filename: str, content_type: str
             blob_client = blob_service_client.get_blob_client(container=CONTAINER_NAME, blob=unique_filename)
             blob_client.upload_blob(contents, overwrite=True, content_settings=ContentSettings(content_type=content_type))
             return blob_client.url
-
-        # Azure 업로드(동기 라이브러리)를 비동기 스레드에서 실행
-        url = await run_in_threadpool(upload_sync)
-        return url
+        return await run_in_threadpool(upload_sync)
     except Exception as e:
         print(f"❌ [Storage] 업로드 실패: {e}")
         return None
-
-# --- [2. 게시글(Post) 로직] ---
-@app.post("/posts")
-async def create_post(
-    title: str = Form("제목 없음"),
-    content: str = Form(...),
-    db: Session = Depends(get_db)
-):
-    try:
-        new_post = models.Post(
-            title=title,
-            body=content,
-            user_id=6,
-            status="active"
-        )
-        db.add(new_post)
-        db.commit()
-        db.refresh(new_post)
-        return new_post
-    except Exception as e:
-        db.rollback()
-        return JSONResponse(status_code=500, content={"status": "error", "detail": str(e)})
 
 # --- [3. 댓글(Comment) 로직] ---
 @app.post("/comments")
@@ -167,21 +120,27 @@ async def create_comment(
     db: Session = Depends(get_db)
 ):
     try:
+        # 로그 출력으로 어디까지 진행되는지 확인
+        print(f"📢 댓글 요청 수신: post_id={post_id}")
+        
         text_ai_res = {"label": "none", "score": 0.0}
         image_ai_res = {"label": "clean", "probability": 0.0}
         uploaded_url = None
 
         # 1. 텍스트 분석
-        if content:
+        if content and content.strip():
             text_ai_res = await analyze_text_ai(content)
 
-        # 2. 이미지 처리
-        if image and image.filename: 
-            image_data = await image.read()
-            if len(image_data) > 0:
-                # Custom Vision 분석과 Blob 업로드를 병렬로 처리하여 속도 개선 가능
-                image_ai_res = await analyze_image_ai(image_data)
-                uploaded_url = await upload_image_to_blob(image_data, image.filename, image.content_type)
+        # 2. 이미지 처리 (분석과 업로드를 병렬로 진행)
+        if image and image.filename:
+            image_data = await image.read()  # 파일 읽기
+            if image_data:
+                print(f"📸 이미지 처리 시작: {len(image_data)} bytes")
+                # 두 작업을 동시에 실행하여 응답 속도 향상
+                image_task = analyze_image_ai(image_data)
+                upload_task = upload_image_to_blob(image_data, image.filename, image.content_type)
+                
+                image_ai_res, uploaded_url = await asyncio.gather(image_task, upload_task)
 
         # 3. 판별 라벨 결정
         final_label = text_ai_res["label"]
@@ -189,6 +148,7 @@ async def create_comment(
             if image_ai_res["probability"] > 0.6:
                 final_label = f"unsafe_image_{image_ai_res['label']}"
 
+        # 4. DB 저장
         new_comment = models.Comment(
             post_id=post_id,
             user_id=6,
@@ -202,19 +162,27 @@ async def create_comment(
         db.commit()
         db.refresh(new_comment)
         
-        return {
-            "status": "success", 
-            "ai_result": {
-                "text": text_ai_res, 
-                "image": image_ai_res
-            }
-        }
+        print(f"✅ 댓글 저장 완료: ID {new_comment.id}")
+        return {"status": "success", "ai_result": {"text": text_ai_res, "image": image_ai_res}}
+
     except Exception as e:
-        db.rollback()
+        if db: db.rollback()
         print(f"❌ [Comment Error] {e}")
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
-# --- [4. 조회 및 템플릿] ---
+# --- [게시글 조회 및 기타 로직] ---
+@app.post("/posts")
+async def create_post(title: str = Form("제목 없음"), content: str = Form(...), db: Session = Depends(get_db)):
+    try:
+        new_post = models.Post(title=title, body=content, user_id=6, status="active")
+        db.add(new_post)
+        db.commit()
+        db.refresh(new_post)
+        return new_post
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(status_code=500, content={"detail": str(e)})
+
 @app.get("/posts")
 async def get_posts(db: Session = Depends(get_db)):
     posts = db.query(models.Post).order_by(models.Post.id.desc()).all()
@@ -228,8 +196,7 @@ async def get_posts(db: Session = Depends(get_db)):
             "comments": [{
                 "id": c.id, "content": c.content, "image_url": c.image_url,
                 "username": c.author.username if c.author else "익명",
-                "label": c.label,
-                "score": c.toxicity_score
+                "label": c.label, "score": c.toxicity_score
             } for c in post.comments]
         })
     return result
