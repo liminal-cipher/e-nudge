@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends, HTTPException, File, UploadFile, Form
+from fastapi import FastAPI, Request, Depends, HTTPException, File, UploadFile, Form, status
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -30,11 +30,11 @@ except Exception as e:
 # --- [AI 분석 보조 함수들] ---
 
 async def analyze_text_ai(text: str):
+    # 실제 텍스트 분석 로직이 필요하다면 여기에 추가 (현재는 기본값 반환)
     if not text: return {"label": "safe", "score": 0.0}
     return {"label": "safe", "score": 0.05}
 
 async def analyze_image_ai(image_bytes: bytes):
-    """Custom Vision 이미지 모델 실제 호출"""
     if not image_bytes: 
         return {"label": "no_image", "probability": 0.0}
     
@@ -43,12 +43,10 @@ async def analyze_image_ai(image_bytes: bytes):
             "Prediction-Key": CUSTOM_VISION_KEY,
             "Content-Type": "application/octet-stream"
         }
-        
-        # 💡 httpx 사용 시 좀 더 명확하게 content로 전달
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 CUSTOM_VISION_URL, 
-                content=image_bytes, # 바이너리 데이터 직접 전송
+                content=image_bytes, 
                 headers=headers, 
                 timeout=10.0
             )
@@ -63,7 +61,6 @@ async def analyze_image_ai(image_bytes: bytes):
                 }
             return {"label": "unknown", "probability": 0.0}
         else:
-            # 💡 에러 발생 시 상세 내용을 서버 터미널에 출력
             print(f"⚠️ [IMAGE AI] API 에러 ({response.status_code}): {response.text}")
             return {"label": "error", "probability": 0.0}
             
@@ -72,7 +69,6 @@ async def analyze_image_ai(image_bytes: bytes):
         return {"label": "error", "probability": 0.0}
 
 async def upload_image_to_blob(contents: bytes, filename: str, content_type: str):
-    """Refactored: 이미 읽은 바이트 데이터를 받아 업로드하도록 변경"""
     try:
         ext = os.path.splitext(filename)[1]
         unique_filename = f"{uuid.uuid4()}{ext}"
@@ -87,7 +83,29 @@ async def upload_image_to_blob(contents: bytes, filename: str, content_type: str
         print(f"❌ Azure 업로드 실패: {e}")
         return None
 
-# --- [3. 댓글 로직 수정본] ---
+# --- [2. 게시글(Post) 로직 추가] ---
+class PostCreate(BaseModel):
+    body: str
+
+@app.post("/posts")
+async def create_post(post: PostCreate, db: Session = Depends(get_db)):
+    """게시글 생성 핸들러 (405 에러 해결을 위해 추가)"""
+    try:
+        # 임시 user_id 6번 사용 (기존 댓글 로직과 동일)
+        new_post = models.Post(
+            body=post.body,
+            user_id=6 
+        )
+        db.add(new_post)
+        db.commit()
+        db.refresh(new_post)
+        return new_post
+    except Exception as e:
+        db.rollback()
+        print(f"🔥 게시글 저장 에러: {str(e)}")
+        raise HTTPException(status_code=500, detail="게시글 저장 중 오류가 발생했습니다.")
+
+# --- [3. 댓글(Comment) 로직] ---
 @app.post("/comments")
 async def create_comment(
     content: Optional[str] = Form(None),
@@ -103,28 +121,19 @@ async def create_comment(
         image_ai_res = {"label": "clean", "probability": 0.0}
         uploaded_url = None
 
-        # 1. 텍스트 분석
         if content:
             text_ai_res = await analyze_text_ai(content)
 
-        # 2. 이미지 처리 (분석 + 업로드)
         if image:
-            # 💡 파일을 한 번만 읽어서 두 곳(AI 분석, Blob 업로드)에 사용합니다.
             image_data = await image.read()
-            
-            # AI 분석 호출
             image_ai_res = await analyze_image_ai(image_data)
-            
-            # 업로드 호출 (이미 읽은 image_data 사용)
             uploaded_url = await upload_image_to_blob(image_data, image.filename, image.content_type)
 
-        # 3. 판별 라벨 결정
         final_label = text_ai_res["label"] 
         if image_ai_res["label"].lower() != "clean" and image_ai_res["label"].lower() != "no_image":
             if image_ai_res["probability"] > 0.6:
                 final_label = f"unsafe_image_{image_ai_res['label']}"
 
-        # 4. DB 저장
         new_comment = models.Comment(
             post_id=post_id,
             user_id=6,
@@ -138,7 +147,6 @@ async def create_comment(
         db.commit()
         db.refresh(new_comment)
         
-        # 💡 성공 응답 반환 (JSON 구조 유지)
         return {
             "status": "success", 
             "image_url": uploaded_url, 
@@ -150,14 +158,13 @@ async def create_comment(
         
     except Exception as e:
         db.rollback()
-        print(f"🔥 서버 에러 상세: {str(e)}") # 👈 에러 원인을 터미널에 출력
-        # 💡 브라우저에 500 에러와 함께 원인 메시지를 보냅니다.
+        print(f"🔥 서버 에러 상세: {str(e)}")
         return JSONResponse(
             status_code=500, 
             content={"status": "error", "detail": str(e)}
         )
 
-# --- 나머지 기존 코드 (Post 로직, Jinja2 등) 유지 ---
+# --- [4. 조회 및 템플릿 로직] ---
 @app.get("/posts")
 async def get_posts(db: Session = Depends(get_db)):
     posts = db.query(models.Post).order_by(models.Post.id.desc()).all()
