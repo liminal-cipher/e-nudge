@@ -9,9 +9,10 @@ import os
 import httpx
 import re
 import emoji
-import joblib  # 추가: 모델 로드용
-from kiwipiepy import Kiwi  # 추가: 형태소 분석용
+import joblib
+from kiwipiepy import Kiwi
 from azure.storage.blob import BlobServiceClient, ContentSettings
+from fastapi.concurrency import run_in_threadpool  # 필수: 동기 함수를 비동기로 감싸기 위함
 
 from database import get_db, engine
 import models
@@ -19,11 +20,10 @@ import models
 app = FastAPI()
 
 # --- [0. AI 모델 설정값] ---
-# 이미지: Azure Custom Vision
 CUSTOM_VISION_URL = "https://gdscs-prediction.cognitiveservices.azure.com/customvision/v3.0/Prediction/720991f1-25e4-4d32-968d-0e00abbb1166/classify/iterations/Iteration5/image"
 CUSTOM_VISION_KEY = "***REMOVED***"
 
-# 텍스트: 팀원의 ML 모델 로드
+# 모델 로드 (전역 변수)
 try:
     lr_model = joblib.load("lr_model.pkl")
     tfidf_vectorizer = joblib.load("tfidf_vectorizer.pkl")
@@ -46,7 +46,6 @@ except Exception as e:
 # --- [AI 분석 보조 함수들] ---
 
 def clean_text(text):
-    """텍스트 정제"""
     if not isinstance(text, str): return ""
     text = emoji.replace_emoji(text, replace='')
     text = re.sub(r'http\S+', '', text)
@@ -56,32 +55,36 @@ def clean_text(text):
     return text
 
 def tokenize(text):
-    """형태소 분석"""
     if not text: return ""
     tokens = kiwi.tokenize(text, normalize_coda=True)
     return ' '.join(t.form for t in tokens if t.tag in KEEP_TAGS)
 
 async def analyze_text_ai(text: str):
-    """실제 ML 모델을 통한 텍스트 분석 및 스코어 출력"""
+    """실제 ML 모델 분석 - run_in_threadpool을 사용하여 Blocking 방지"""
     if not text: 
         return {"label": "none", "score": 0.0}
     
     try:
-        cleaned = clean_text(text)
-        tokenized = tokenize(cleaned)
+        # CPU 연산이 필요한 부분을 함수로 정의
+        def predict_sync():
+            cleaned = clean_text(text)
+            tokenized = tokenize(cleaned)
+            if not tokenized:
+                return None
+            vector = tfidf_vectorizer.transform([tokenized])
+            return lr_model.predict_proba(vector)[0]
+
+        # 별도 스레드에서 실행하여 FastAPI 이벤트 루프가 멈추지 않게 함
+        probs = await run_in_threadpool(predict_sync)
         
-        if not tokenized:
+        if probs is None:
             return {"label": "none", "score": 0.0}
 
-        # 벡터화 및 예측
-        vector = tfidf_vectorizer.transform([tokenized])
-        probs = lr_model.predict_proba(vector)[0]
         labels = ['none', 'offensive', 'hate']
-        
         max_idx = probs.argmax()
         result = {
             "label": labels[max_idx], 
-            "score": float(probs[max_idx]) # 스코어 반환
+            "score": float(probs[max_idx])
         }
         print(f"📝 [TEXT AI] {text[:10]}... -> {result['label']} ({result['score']:.4f})")
         return result
@@ -90,7 +93,6 @@ async def analyze_text_ai(text: str):
         return {"label": "error", "score": 0.0}
 
 async def analyze_image_ai(image_bytes: bytes):
-    """Custom Vision을 통한 이미지 분석 및 스코어 출력"""
     if not image_bytes: 
         return {"label": "no_image", "probability": 0.0}
     
@@ -100,7 +102,8 @@ async def analyze_image_ai(image_bytes: bytes):
             "Content-Type": "application/octet-stream"
         }
         async with httpx.AsyncClient() as client:
-            response = await client.post(CUSTOM_VISION_URL, content=image_bytes, headers=headers, timeout=10.0)
+            # 외부 API 호출이므로 timeout을 충분히 줌
+            response = await client.post(CUSTOM_VISION_URL, content=image_bytes, headers=headers, timeout=15.0)
             
         if response.status_code == 200:
             result = response.json()
@@ -108,7 +111,7 @@ async def analyze_image_ai(image_bytes: bytes):
                 top_prediction = result['predictions'][0]
                 res = {
                     "label": top_prediction['tagName'], 
-                    "probability": float(top_prediction['probability']) # 스코어 반환
+                    "probability": float(top_prediction['probability'])
                 }
                 print(f"🖼️ [IMAGE AI] {res['label']} ({res['probability']:.4f})")
                 return res
@@ -119,12 +122,18 @@ async def analyze_image_ai(image_bytes: bytes):
 
 async def upload_image_to_blob(contents: bytes, filename: str, content_type: str):
     try:
-        ext = os.path.splitext(filename)[1]
-        unique_filename = f"{uuid.uuid4()}{ext}"
-        blob_client = blob_service_client.get_blob_client(container=CONTAINER_NAME, blob=unique_filename)
-        blob_client.upload_blob(contents, overwrite=True, content_settings=ContentSettings(content_type=content_type))
-        return blob_client.url
+        def upload_sync():
+            ext = os.path.splitext(filename)[1]
+            unique_filename = f"{uuid.uuid4()}{ext}"
+            blob_client = blob_service_client.get_blob_client(container=CONTAINER_NAME, blob=unique_filename)
+            blob_client.upload_blob(contents, overwrite=True, content_settings=ContentSettings(content_type=content_type))
+            return blob_client.url
+
+        # Azure 업로드(동기 라이브러리)를 비동기 스레드에서 실행
+        url = await run_in_threadpool(upload_sync)
+        return url
     except Exception as e:
+        print(f"❌ [Storage] 업로드 실패: {e}")
         return None
 
 # --- [2. 게시글(Post) 로직] ---
@@ -135,9 +144,6 @@ async def create_post(
     db: Session = Depends(get_db)
 ):
     try:
-        # 게시글 본문도 텍스트 AI 분석 (필요 시)
-        text_res = await analyze_text_ai(content)
-        
         new_post = models.Post(
             title=title,
             body=content,
@@ -165,18 +171,19 @@ async def create_comment(
         image_ai_res = {"label": "clean", "probability": 0.0}
         uploaded_url = None
 
-        # 1. 텍스트 분석 (ML 모델)
+        # 1. 텍스트 분석
         if content:
             text_ai_res = await analyze_text_ai(content)
 
-        # 2. 이미지 처리 (Custom Vision + Azure)
+        # 2. 이미지 처리
         if image and image.filename: 
             image_data = await image.read()
             if len(image_data) > 0:
+                # Custom Vision 분석과 Blob 업로드를 병렬로 처리하여 속도 개선 가능
                 image_ai_res = await analyze_image_ai(image_data)
                 uploaded_url = await upload_image_to_blob(image_data, image.filename, image.content_type)
 
-        # 3. 판별 라벨 결정 (최종 결과 통합)
+        # 3. 판별 라벨 결정
         final_label = text_ai_res["label"]
         if image_ai_res["label"].lower() not in ["clean", "no_image", "error"]:
             if image_ai_res["probability"] > 0.6:
@@ -187,7 +194,7 @@ async def create_comment(
             user_id=6,
             content=content if content else "",
             image_url=uploaded_url,
-            toxicity_score=text_ai_res["score"], # 텍스트 모델의 스코어 저장
+            toxicity_score=text_ai_res["score"],
             label=final_label
         )
         
@@ -198,12 +205,13 @@ async def create_comment(
         return {
             "status": "success", 
             "ai_result": {
-                "text": text_ai_res,  # 텍스트 스코어 포함
-                "image": image_ai_res # 이미지 스코어 포함
+                "text": text_ai_res, 
+                "image": image_ai_res
             }
         }
     except Exception as e:
         db.rollback()
+        print(f"❌ [Comment Error] {e}")
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 # --- [4. 조회 및 템플릿] ---
