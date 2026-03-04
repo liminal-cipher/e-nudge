@@ -89,12 +89,11 @@ class PostCreate(BaseModel):
 
 @app.post("/posts")
 async def create_post(post: PostCreate, db: Session = Depends(get_db)):
-    """게시글 생성 핸들러 (405 에러 해결을 위해 추가)"""
+    """422 에러 해결: JSON 형식을 받고 필드명을 content로 일치시킴"""
     try:
-        # 임시 user_id 6번 사용 (기존 댓글 로직과 동일)
         new_post = models.Post(
-            body=post.body,
-            user_id=6 
+            body=post.content,  # PostCreate의 content를 models.Post의 body에 저장
+            user_id=6           # 기존과 동일하게 6번 유저로 설정
         )
         db.add(new_post)
         db.commit()
@@ -103,7 +102,10 @@ async def create_post(post: PostCreate, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         print(f"🔥 게시글 저장 에러: {str(e)}")
-        raise HTTPException(status_code=500, detail="게시글 저장 중 오류가 발생했습니다.")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "detail": str(e)}
+        )
 
 # --- [3. 댓글(Comment) 로직] ---
 @app.post("/comments")
