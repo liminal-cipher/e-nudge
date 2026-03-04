@@ -87,13 +87,21 @@ async def upload_image_to_blob(contents: bytes, filename: str, content_type: str
 class PostCreate(BaseModel):
     body: str
 
+# --- [2. 게시글(Post) 로직 수정] ---
+
 @app.post("/posts")
-async def create_post(post: PostCreate, db: Session = Depends(get_db)):
-    """422 에러 해결: JSON 형식을 받고 필드명을 content로 일치시킴"""
+async def create_post(
+    title: str = Form("제목 없음"),      # 추가: models.py에 title이 NVARCHAR로 있으므로 받아주는게 좋습니다.
+    content: str = Form(...),          # 프론트에서 보내는 필드명
+    db: Session = Depends(get_db)
+):
     try:
+        # models.py의 Post 클래스 구조에 맞게 매핑
         new_post = models.Post(
-            body=post.content,  # PostCreate의 content를 models.Post의 body에 저장
-            user_id=6           # 기존과 동일하게 6번 유저로 설정
+            title=title,
+            body=content,              # 프론트의 content를 DB의 body 필드에 저장
+            user_id=6,                 # 테스트용 유저 ID
+            status="active"
         )
         db.add(new_post)
         db.commit()
@@ -107,7 +115,7 @@ async def create_post(post: PostCreate, db: Session = Depends(get_db)):
             content={"status": "error", "detail": str(e)}
         )
 
-# --- [3. 댓글(Comment) 로직] ---
+# --- [3. 댓글 로직 수정본] ---
 @app.post("/comments")
 async def create_comment(
     content: Optional[str] = Form(None),
@@ -116,23 +124,28 @@ async def create_comment(
     db: Session = Depends(get_db)
 ):
     try:
-        if not content and not image:
-            raise HTTPException(status_code=400, detail="내용이나 이미지 중 하나는 필수입니다.")
-
+        # 1. 기본 분석 결과 초기화
         text_ai_res = {"label": "safe", "score": 0.0}
-        image_ai_res = {"label": "clean", "probability": 0.0}
+        image_ai_res = {"label": "clean", "probability": 0.0} # 기본값은 깨끗함
         uploaded_url = None
 
+        # 2. 텍스트가 있을 때만 분석
         if content:
             text_ai_res = await analyze_text_ai(content)
 
-        if image:
+        # 3. 이미지 처리 (이미지가 실제로 들어왔을 때만!)
+        # image.filename이 비어있는 경우도 체크하는 것이 안전합니다.
+        if image and image.filename: 
             image_data = await image.read()
-            image_ai_res = await analyze_image_ai(image_data)
-            uploaded_url = await upload_image_to_blob(image_data, image.filename, image.content_type)
+            
+            # 실제 파일 데이터가 있을 때만 Custom Vision 호출
+            if len(image_data) > 0:
+                image_ai_res = await analyze_image_ai(image_data)
+                uploaded_url = await upload_image_to_blob(image_data, image.filename, image.content_type)
 
-        final_label = text_ai_res["label"] 
-        if image_ai_res["label"].lower() != "clean" and image_ai_res["label"].lower() != "no_image":
+        # 4. 판별 라벨 결정 (이미지 분석 결과가 있을 때만 적용)
+        final_label = text_ai_res["label"]
+        if image_ai_res["label"].lower() not in ["clean", "no_image", "error"]:
             if image_ai_res["probability"] > 0.6:
                 final_label = f"unsafe_image_{image_ai_res['label']}"
 
