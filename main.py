@@ -10,7 +10,7 @@ import httpx
 import re
 import emoji
 import joblib
-import asyncio  # 추가: 병렬 처리를 위함
+import asyncio
 from kiwipiepy import Kiwi
 from azure.storage.blob import BlobServiceClient, ContentSettings
 from fastapi.concurrency import run_in_threadpool
@@ -85,17 +85,22 @@ async def analyze_image_ai(image_bytes: bytes):
     try:
         headers = {"Prediction-Key": CUSTOM_VISION_KEY, "Content-Type": "application/octet-stream"}
         async with httpx.AsyncClient() as client:
-            # 타임아웃을 설정하여 무한 대기 방지
+            # 타임아웃을 설정하여 무한 대기 방지 (B3 사양에 맞춰 10초)
             response = await client.post(CUSTOM_VISION_URL, content=image_bytes, headers=headers, timeout=10.0)
             
         if response.status_code == 200:
             result = response.json()
-            if result.get('predictions'):
-                top = result['predictions'][0]
+            predictions = result.get('predictions', [])
+            if predictions:
+                # [개선] 확률(probability)이 가장 높은 태그를 선택
+                top = max(predictions, key=lambda x: x['probability'])
+                print(f"📸 [IMAGE AI] 분석 완료: {top['tagName']} ({top['probability']:.2%})")
                 return {"label": top['tagName'], "probability": float(top['probability'])}
+        
+        print(f"⚠️ [IMAGE AI] 분석 실패 (Status: {response.status_code})")
         return {"label": "unknown", "probability": 0.0}
     except Exception as e:
-        print(f"❌ [IMAGE AI] 예외: {e}")
+        print(f"❌ [IMAGE AI] 예외 발생: {e}")
         return {"label": "error", "probability": 0.0}
 
 async def upload_image_to_blob(contents: bytes, filename: str, content_type: str):
@@ -120,7 +125,6 @@ async def create_comment(
     db: Session = Depends(get_db)
 ):
     try:
-        # 로그 출력으로 어디까지 진행되는지 확인
         print(f"📢 댓글 요청 수신: post_id={post_id}")
         
         text_ai_res = {"label": "none", "score": 0.0}
@@ -131,22 +135,26 @@ async def create_comment(
         if content and content.strip():
             text_ai_res = await analyze_text_ai(content)
 
-        # 2. 이미지 처리 (분석과 업로드를 병렬로 진행)
+        # 2. 이미지 처리 (분석과 업로드를 병렬로 진행하여 속도 향상)
         if image and image.filename:
-            image_data = await image.read()  # 파일 읽기
+            image_data = await image.read()
             if image_data:
                 print(f"📸 이미지 처리 시작: {len(image_data)} bytes")
-                # 두 작업을 동시에 실행하여 응답 속도 향상
                 image_task = analyze_image_ai(image_data)
                 upload_task = upload_image_to_blob(image_data, image.filename, image.content_type)
                 
+                # 병렬 대기
                 image_ai_res, uploaded_url = await asyncio.gather(image_task, upload_task)
 
-        # 3. 판별 라벨 결정
+        # 3. 최종 판별 라벨 결정 로직
         final_label = text_ai_res["label"]
-        if image_ai_res["label"].lower() not in ["clean", "no_image", "error"]:
+        
+        # 이미지 라벨이 'clean' 계열이 아니고 확률이 60% 이상인 경우만 반영
+        img_label = image_ai_res["label"].lower()
+        if img_label not in ["clean", "no_image", "error", "unknown"]:
             if image_ai_res["probability"] > 0.6:
-                final_label = f"unsafe_image_{image_ai_res['label']}"
+                # 텍스트가 정상(none)이더라도 이미지가 유해하면 이미지 라벨을 우선순위로 둠
+                final_label = f"unsafe_image_{img_label}"
 
         # 4. DB 저장
         new_comment = models.Comment(
@@ -162,7 +170,7 @@ async def create_comment(
         db.commit()
         db.refresh(new_comment)
         
-        print(f"✅ 댓글 저장 완료: ID {new_comment.id}")
+        print(f"✅ 댓글 저장 완료: ID {new_comment.id} / 최종라벨: {final_label}")
         return {"status": "success", "ai_result": {"text": text_ai_res, "image": image_ai_res}}
 
     except Exception as e:
