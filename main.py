@@ -142,7 +142,7 @@ async def create_comment(
         if content and content.strip():
             text_ai_res = await analyze_text_ai(content)
 
-        # 2. 이미지 처리 (분석 & 업로드 병렬 실행)
+        # 2. 이미지 처리
         if image and image.filename and len(image.filename.strip()) > 0:
             image_data = await image.read()
             if image_data:
@@ -150,16 +150,13 @@ async def create_comment(
                 upload_task = upload_image_to_blob(image_data, image.filename, image.content_type)
                 image_ai_res, uploaded_url = await asyncio.gather(image_task, upload_task)
 
-        # 3. 최종 점수 및 라벨 판별 (원래 설정하신 임계값 0.55 / 0.44 적용)
+        # 3. 최종 점수 및 라벨 판별
         text_score = text_ai_res["score"]
         img_label = image_ai_res["label"].lower()
         img_prob = image_ai_res["probability"]
         
-        # 이미지 유해성 판단 (SAFE_TAGS 외에는 점수 반영)
         SAFE_TAGS = ["clean", "no_image", "error", "unknown", "neutral"]
         image_score = img_prob if img_label not in SAFE_TAGS else 0.0
-
-        # 둘 중 더 높은 독성 점수를 최종 점수로 채택
         final_score = max(text_score, image_score)
 
         if final_score >= 0.55:
@@ -169,21 +166,33 @@ async def create_comment(
         else:
             final_label = "none"
 
-        # 4. [중요] Comment DB 모델에 저장
+        # --- [수정 포인트] Hate(위험) 등급이면 DB 저장 자체를 하지 않음 ---
+        if final_label == "hate":
+            print(f"🚫 [차단] 유해성 검사 결과 'hate' 감지 (Score: {final_score})")
+            return JSONResponse(
+                status_code=400, # 잘못된 요청(유해 콘텐츠)으로 처리
+                content={
+                    "status": "blocked",
+                    "message": "유해한 내용이 포함되어 등록이 차단되었습니다.",
+                    "ai_result": {"final": {"label": final_label, "score": final_score}}
+                }
+            )
+
+        # 4. 'none' 또는 'offensive'일 때만 DB 저장 진행
         new_comment = models.Comment(
             post_id=post_id,
-            user_id=8,  # 실제 서비스 시에는 인증된 사용자 ID 세션값 사용
-            content=content if content else "", # NVARCHAR 대응
-            image_url=uploaded_url,             # NVARCHAR 대응
-            toxicity_score=float(final_score),  # Float 대응
-            label=final_label                   # NVARCHAR(100) 대응
+            user_id=8, 
+            content=content if content else "",
+            image_url=uploaded_url,
+            toxicity_score=float(final_score),
+            label=final_label
         )
         
         db.add(new_comment)
         db.commit()
         db.refresh(new_comment)
         
-        print(f"✅ DB 저장 완료: Comment ID {new_comment.id} (Score: {final_score}, Label: {final_label})")
+        print(f"✅ DB 저장 완료: ID {new_comment.id} (Label: {final_label})")
 
         return {
             "status": "success", 
@@ -197,7 +206,7 @@ async def create_comment(
 
     except Exception as e:
         if db: db.rollback()
-        print(f"🔥 DB 저장 중 에러 발생: {e}")
+        print(f"🔥 에러 발생: {e}")
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 @app.post("/posts")
