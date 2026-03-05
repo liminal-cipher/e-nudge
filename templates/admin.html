@@ -16,7 +16,8 @@
             --border: #eeeeee;
             --safe: #28a745;
             --danger: #ff5a5a;
-            --warning: #f0ad4e;
+            --warning: #f90;
+            --offensive: #ff9900;
         }
 
         body { font-family: 'Pretendard', sans-serif; background-color: var(--bg); margin: 0; color: var(--text-main); }
@@ -27,12 +28,22 @@
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 20px; position: fixed; top: 0; left: 0; right: 0; z-index: 100;
         }
-        .header-logo { color: var(--primary); font-weight: 800; font-size: 20px; display: flex; align-items: center; cursor: pointer; text-decoration: none; }
-        .header-logo span { color: #333; margin-left: 8px; font-size: 16px; letter-spacing: -0.5px; }
-        .search-bar { background: #f1f3f5; border-radius: 20px; padding: 8px 20px; width: 350px; display: flex; align-items: center; }
+        .header-logo { color: var(--primary); font-weight: 800; display: flex; align-items: center; cursor: pointer; text-decoration: none; }
+        .header-logo span { color: #333; margin-left: 8px; letter-spacing: -0.5px; }
+        .search-bar { 
+            background: #f1f3f5; 
+            border-radius: 22px; 
+            padding: 10px 20px; 
+            width: 360px; 
+            display: flex; 
+            align-items: center; 
+            border: 1px solid var(--border);
+            box-sizing: border-box;
+        }
         .search-bar input { border: none; background: transparent; outline: none; width: 100%; margin-left: 10px; font-size: 14px; }
         .header-icons { display: flex; gap: 22px; color: #555; font-size: 18px; align-items: center; }
-        .header-icon-link { color: inherit; text-decoration: none; transition: color 0.2s; }
+        .header-icon-link { color: inherit; text-decoration: none; transition: color 0.2s; display: inline-flex; align-items: center; justify-content: center; line-height: 1; vertical-align: middle; }
+        .header-icon-link i { display: block; line-height: 1; }
         .header-icon-link:hover { color: var(--primary); }
 
         .admin-wrap { max-width: 900px; margin: 0 auto; padding: 40px 20px; padding-top: 100px; }
@@ -63,7 +74,7 @@
         .admin-card-label { font-size: 13px; color: var(--text-main); display: flex; align-items: center; justify-content: center; gap: 8px; }
         .admin-card.card-total .admin-card-num { color: #333; }
         .admin-card.card-safe .admin-card-num { color: var(--safe); }
-        .admin-card.card-warning .admin-card-num { color: var(--warning); }
+        .admin-card.card-warning .admin-card-num { color: var(--offensive); }
         .admin-card.card-danger .admin-card-num { color: var(--danger); }
 
         /* 탭 메뉴 */
@@ -101,7 +112,7 @@
             white-space: nowrap;
         }
         .admin-list-item .badge.safe { background: rgba(40, 167, 69, 0.1); color: var(--safe); }
-        .admin-list-item .badge.warning { background: rgba(240, 173, 78, 0.2); color: var(--warning); }
+        .admin-list-item .badge.warning { background: rgba(255, 153, 0, 0.15); color: var(--offensive); }
         .admin-list-item .badge.danger { background: rgba(255, 90, 90, 0.15); color: var(--danger); }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }

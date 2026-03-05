@@ -281,6 +281,10 @@ async def read_main(request: Request):
 async def read_admin(request: Request):
     return templates.TemplateResponse("admin.html", {"request": request})
 
+@app.get("/demo", response_class=HTMLResponse)
+async def read_demo(request: Request):
+    return templates.TemplateResponse("demo.html", {"request": request})
+
 @app.delete("/comments/{comment_id}")
 async def delete_comment(comment_id: int, db: Session = Depends(get_db)):
     try:

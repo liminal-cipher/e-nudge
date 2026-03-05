@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 댓글 넛지 시스템 | 댓글 넛지</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #12d3cf;
+            --bg: #f8f9fa;
+            --white: #ffffff;
+            --text-main: #333;
+            --text-sub: #888;
+            --border: #eeeeee;
+            --safe: #28a745;
+            --danger: #ff5a5a;
+            --offensive: #ff9900;
+        }
+        body { font-family: 'Pretendard', sans-serif; background-color: var(--bg); margin: 0; color: var(--text-main); }
+
+        .header {
+            height: 60px; background: var(--white); border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+        }
+        .header-logo { color: var(--primary); font-weight: 800; display: flex; align-items: center; cursor: pointer; text-decoration: none; }
+        .header-logo span { color: #333; margin-left: 8px; letter-spacing: -0.5px; }
+        .search-bar {
+            background: #f1f3f5; border-radius: 22px; padding: 10px 20px; width: 360px;
+            display: flex; align-items: center; border: 1px solid var(--border); box-sizing: border-box;
+        }
+        .search-bar input { border: none; background: transparent; outline: none; width: 100%; margin-left: 10px; font-size: 14px; }
+        .header-icons { display: flex; gap: 22px; color: #555; font-size: 18px; align-items: center; }
+        .header-icon-link { color: inherit; text-decoration: none; transition: color 0.2s; }
+        .header-icon-link:hover { color: var(--primary); }
+
+        .admin-wrap { max-width: 900px; margin: 0 auto; padding: 40px 20px; padding-top: 100px; }
+        .admin-back {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--primary); font-weight: 700; font-size: 14px; text-decoration: none;
+            margin-bottom: 28px; transition: opacity 0.2s;
+        }
+        .admin-back:hover { opacity: 0.85; }
+        .admin-title { font-weight: 800; font-size: 28px; color: var(--primary); margin: 0 0 8px 0; }
+        .admin-desc { font-size: 15px; color: var(--text-sub); margin: 0 0 32px 0; }
+
+        /* 3단계 카드 - 가로 3열 */
+        .demo-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 32px; }
+        .demo-card {
+            background: var(--white); border: 1px solid var(--border); border-radius: 15px;
+            padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); text-align: center;
+        }
+        .demo-card-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+        .demo-card-range { font-size: 13px; color: var(--text-sub); margin-bottom: 12px; }
+        .demo-card-icon { width: 40px; height: 40px; border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .demo-card.dsafe .demo-card-title { color: var(--safe); }
+        .demo-card.dsafe .demo-card-icon { background: rgba(40, 167, 69, 0.15); color: var(--safe); }
+        .demo-card.dwarning .demo-card-title { color: var(--offensive); }
+        .demo-card.dwarning .demo-card-icon { background: rgba(255, 153, 0, 0.15); color: var(--offensive); }
+        .demo-card.ddanger .demo-card-title { color: var(--danger); }
+        .demo-card.ddanger .demo-card-icon { background: rgba(255, 90, 90, 0.15); color: var(--danger); }
+        .demo-card-desc { font-size: 13px; color: var(--text-sub); line-height: 1.5; }
+
+        .admin-list-section {
+            background: var(--white); border: 1px solid var(--border); border-radius: 15px;
+            padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); margin-bottom: 20px;
+        }
+        .admin-list-title {
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 700; font-size: 16px; color: var(--text-main); margin-bottom: 20px;
+        }
+        .admin-list-title i { color: var(--primary); }
+
+        .demo-textarea { width: 100%; border: 1px solid var(--border); border-radius: 12px; padding: 14px; font-size: 15px; min-height: 100px; resize: vertical; outline: none; font-family: inherit; box-sizing: border-box; }
+        .demo-textarea:focus { border-color: var(--primary); }
+        .nudge-inline { display: none; padding: 14px 16px; border-radius: 12px; font-weight: 600; font-size: 14px; margin-top: 12px; border: 1px solid; }
+        .nudge-inline.warning { background: rgba(255, 153, 0, 0.12); color: #c97a00; border-color: var(--offensive); }
+        .nudge-inline.warning .nudge-head { font-weight: 700; margin-bottom: 4px; }
+        .nudge-inline.danger { background: rgba(255, 90, 90, 0.1); color: var(--danger); border-color: var(--danger); }
+        .nudge-inline.show { display: block; }
+        .demo-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid #f1f3f5; }
+        .btn-demo { padding: 10px 24px; border-radius: 25px; font-weight: 700; font-size: 14px; cursor: pointer; border: none; }
+        .btn-demo-post { background: #eee; color: #999; }
+        .btn-demo-post.active { background: var(--primary); color: #fff; }
+        .btn-demo-post:disabled { cursor: not-allowed; }
+
+        .admin-list-items { list-style: none; padding: 0; margin: 0; }
+        .admin-list-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 0; border-bottom: 1px solid #f1f3f5;
+        }
+        .admin-list-item:last-child { border-bottom: none; }
+        .admin-list-item .key { color: var(--text-sub); font-size: 14px; }
+        .admin-list-item .val { font-weight: 600; font-size: 14px; }
+
+        .example-row { padding: 12px 0; border-bottom: 1px solid #f1f3f5; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background 0.2s; border-radius: 8px; padding-left: 8px; margin-bottom: 4px; }
+        .example-row:hover { background: #f8f9fa; }
+        .example-row:last-child { border-bottom: none; }
+        .example-row .tag { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 8px; min-width: 44px; text-align: center; }
+        .example-row .tag.safe { background: rgba(40, 167, 69, 0.1); color: var(--safe); }
+        .example-row .tag.warning { background: rgba(255, 153, 0, 0.15); color: var(--offensive); }
+        .example-row .tag.danger { background: rgba(255, 90, 90, 0.15); color: var(--danger); }
+        .example-row .text { font-size: 14px; color: var(--text-main); }
+
+        .nudge-popup { display: none; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 20px 28px; border-radius: 14px; font-weight: 700; z-index: 10001; max-width: 90%; text-align: center; }
+        .nudge-popup.warning { background: var(--offensive); color: #fff; box-shadow: 0 10px 32px rgba(255, 153, 0, 0.4); }
+        .nudge-popup.danger { background: var(--danger); color: #fff; box-shadow: 0 10px 32px rgba(255, 90, 90, 0.4); }
+        .nudge-popup.show { display: block; animation: popIn 0.25s ease-out; }
+        @keyframes popIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+        .shake { animation: shake 0.5s ease-in-out; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .demo-image-preview-wrap { display: none; margin-top: 12px; position: relative; width: fit-content; }
+        .demo-image-preview-wrap.show { display: block; }
+        .demo-image-preview { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); display: block; }
+        .demo-image-remove { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; background: #333; color: #fff; border: none; font-size: 14px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="/" class="header-logo"><i class="fa-solid fa-feather-pointed"></i> <span>댓글 <b>넛지</b></span></a>
+        <div class="search-bar"><i class="fa-solid fa-magnifying-glass" style="color:#adb5bd"></i><input type="text" placeholder="검색"></div>
+        <div class="header-icons">
+            <i class="fa-solid fa-flask"></i>
+            <a href="/admin" class="header-icon-link" title="관리자"><i class="fa-solid fa-shield-halved"></i></a>
+            <i class="fa-solid fa-bell"></i>
+            <i class="fa-solid fa-user"></i>
+        </div>
+    </header>
+
+    <div class="admin-wrap">
+        <a href="/" class="admin-back">
+            <i class="fa-solid fa-arrow-left"></i> 커뮤니티로 돌아가기
+        </a>
+
+        <h1 class="admin-title">AI 댓글 넛지 시스템</h1>
+        <p class="admin-desc">TF-IDF + 로지스틱 회귀 모델을 활용하여 작성 중인 텍스트의 악성 확률을 실시간으로 분석합니다. 확률에 따라 3단계 넛지(안전 / 주의 / 위험)를 적용하여 건전한 소통 문화를 유도합니다.</p>
+
+        <!-- 3단계 넛지 시스템 -->
+        <h2 class="admin-list-title" style="margin-bottom: 16px;"><i class="fa-solid fa-layer-group"></i> 3단계 넛지 시스템</h2>
+        <div class="demo-cards">
+            <div class="demo-card dsafe">
+                <div class="demo-card-title">안전</div>
+                <div class="demo-card-range">(0.0 ~ 0.43)</div>
+                <div class="demo-card-icon"><i class="fa-solid fa-check"></i></div>
+                <div class="demo-card-desc">정상적인 댓글입니다. 자유롭게 게시할 수 있습니다.</div>
+            </div>
+            <div class="demo-card dwarning">
+                <div class="demo-card-title">주의</div>
+                <div class="demo-card-range">(0.44 ~ 0.54)</div>
+                <div class="demo-card-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="demo-card-desc">불쾌감을 줄 수 있는 표현이 감지되었습니다. 부드러운 표현을 권장합니다.</div>
+            </div>
+            <div class="demo-card ddanger">
+                <div class="demo-card-title">위험</div>
+                <div class="demo-card-range">(0.55 ~ 1.0)</div>
+                <div class="demo-card-icon"><i class="fa-solid fa-circle-xmark"></i></div>
+                <div class="demo-card-desc">명백한 욕설/비방이 감지되었습니다. 게시가 차단됩니다.</div>
+            </div>
+        </div>
+
+        <!-- 실시간 데모 -->
+        <section class="admin-list-section">
+            <h2 class="admin-list-title">
+                <i class="fa-solid fa-flask"></i> 실시간 데모
+            </h2>
+            <textarea id="commentInput" class="demo-textarea" placeholder="따뜻한 댓글을 남겨주세요..."></textarea>
+            <div id="nudgeInline" class="nudge-inline">
+                <div class="nudge-head">잠깐만요</div>
+                <div>불쾌감을 줄 수 있는 표현이 감지되었어요.</div>
+            </div>
+            <div id="imagePreviewWrap" class="demo-image-preview-wrap">
+                <img id="imagePreview" class="demo-image-preview" alt="미리보기">
+                <button type="button" id="imagePreviewRemove" class="demo-image-remove" aria-label="제거">&times;</button>
+            </div>
+            <input type="file" id="imageFileInput" accept="image/*" style="display: none;">
+            <div class="demo-actions">
+                <div>
+                    <button type="button" id="btnImage" class="btn-demo" style="background:transparent; color:#888;"><i class="fa-regular fa-image"></i> 이미지</button>
+                </div>
+                <button type="button" id="btnPost" class="btn-demo btn-demo-post" disabled>게시</button>
+            </div>
+        </section>
+
+        <!-- 예시 문장 -->
+        <section class="admin-list-section">
+            <h2 class="admin-list-title"><i class="fa-solid fa-quote-right"></i> 예시 문장</h2>
+            <div class="example-row" data-text="오늘 컴백 너무 기대돼요!">
+                <span class="tag safe">안전</span>
+                <span class="text">"오늘 컴백 너무 기대돼요!..."</span>
+            </div>
+            <div class="example-row" data-text="너 바보야? 멍청이">
+                <span class="tag warning">주의</span>
+                <span class="text">"너 바보야? 멍청이..."</span>
+            </div>
+            <div class="example-row" data-text="시**아, 개**, *신">
+                <span class="tag danger">위험</span>
+                <span class="text">"시**아, 개**, *신 등..."</span>
+            </div>
+        </section>
+
+        <!-- 상세 분석 결과 -->
+        <section class="admin-list-section">
+            <h2 class="admin-list-title"><i class="fa-solid fa-chart-line"></i> 상세 분석 결과</h2>
+            <ul class="admin-list-items">
+                <li class="admin-list-item">
+                    <span class="key">악성 확률</span>
+                    <span class="val" id="detailProb">0%</span>
+                </li>
+                <li class="admin-list-item">
+                    <span class="key">넛지 레벨</span>
+                    <span class="val" id="detailLevel">안전</span>
+                </li>
+                <li class="admin-list-item">
+                    <span class="key">감지된 표현</span>
+                    <span class="val" id="detailPhrase">-</span>
+                </li>
+                <li class="admin-list-item">
+                    <span class="key">분석 방식</span>
+                    <span class="val" style="color: var(--text-sub);"><i class="fa-solid fa-flask" style="margin-right:6px;"></i>로컬 Mock</span>
+                </li>
+            </ul>
+        </section>
+    </div>
+
+    <div id="popupWarningConfirm" class="nudge-popup warning">경고를 확인했지만 게시하면 관리자에게 기록됩니다.</div>
+    <div id="popupDanger" class="nudge-popup danger">🚫 명백한 욕설/비방이 감지되었습니다. 게시가 차단됩니다.</div>
+    <div id="popupImageDanger" class="nudge-popup danger">🚫 부적절한 이미지가 감지되었습니다. 게시가 차단됩니다.</div>
+
+    <script>
+        (function () {
+            var POINT = '#ff9900';
+            var WARNING_KEYWORDS = ['바보', '멍청이'];
+            var DANGER_PATTERNS = [
+                { re: /시..아/, label: '시**아' },
+                { re: /개../, label: '개**' },
+                { re: /.\신/, label: '*신' }
+            ];
+            var WARNING_PROB = 80;
+            var DANGER_PROB = 95;
+            var SAFE_PROB = 0;
+
+            var commentInput = document.getElementById('commentInput');
+            var nudgeInline = document.getElementById('nudgeInline');
+            var btnPost = document.getElementById('btnPost');
+            var btnImage = document.getElementById('btnImage');
+            var detailProb = document.getElementById('detailProb');
+            var detailLevel = document.getElementById('detailLevel');
+            var detailPhrase = document.getElementById('detailPhrase');
+            var popupWarningConfirm = document.getElementById('popupWarningConfirm');
+            var popupDanger = document.getElementById('popupDanger');
+            var popupImageDanger = document.getElementById('popupImageDanger');
+
+            function analyze(text) {
+                var t = (text || '').trim();
+                if (!t) return { level: 'safe', prob: SAFE_PROB, phrases: [] };
+                var phrases = [];
+                for (var i = 0; i < DANGER_PATTERNS.length; i++) {
+                    if (DANGER_PATTERNS[i].re.test(t)) phrases.push(DANGER_PATTERNS[i].label);
+                }
+                if (phrases.length) return { level: 'danger', prob: DANGER_PROB, phrases: phrases };
+                for (var j = 0; j < WARNING_KEYWORDS.length; j++) {
+                    if (t.indexOf(WARNING_KEYWORDS[j]) !== -1) phrases.push(WARNING_KEYWORDS[j]);
+                }
+                if (phrases.length) return { level: 'warning', prob: WARNING_PROB, phrases: phrases };
+                return { level: 'safe', prob: SAFE_PROB, phrases: [] };
+            }
+
+            function updateDetail(result) {
+                detailProb.textContent = result.prob + '%';
+                detailProb.style.color = result.level === 'safe' ? '#333' : result.level === 'warning' ? POINT : 'var(--danger)';
+                var levelText = result.level === 'safe' ? '안전' : result.level === 'warning' ? '▲ 주의' : '위험';
+                detailLevel.innerHTML = result.level === 'warning' ? '<i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i>주의' : levelText;
+                detailLevel.style.color = result.level === 'safe' ? 'var(--safe)' : result.level === 'warning' ? POINT : 'var(--danger)';
+                detailPhrase.textContent = result.phrases.length ? result.phrases.join(', ') : '-';
+                detailPhrase.style.color = result.phrases.length ? (result.level === 'danger' ? 'var(--danger)' : POINT) : '#888';
+            }
+
+            function updateInlineNudge(result) {
+                nudgeInline.className = 'nudge-inline';
+                nudgeInline.innerHTML = '';
+                if (result.level === 'warning') {
+                    nudgeInline.className = 'nudge-inline warning show';
+                    nudgeInline.innerHTML = '<div class="nudge-head">⚠️ 잠깐만요</div><div>불쾌감을 줄 수 있는 표현이 감지되었어요.</div>';
+                } else if (result.level === 'danger') {
+                    nudgeInline.className = 'nudge-inline danger show';
+                    nudgeInline.textContent = '🚫 명백한 욕설/비방이 감지되었습니다. 게시가 차단됩니다.';
+                }
+            }
+
+            function hasAttachedImage() {
+                var input = document.getElementById('imageFileInput');
+                return input && input.files && input.files.length > 0;
+            }
+
+            function updatePostButton() {
+                var hasText = (commentInput.value || '').trim().length > 0;
+                var hasImage = hasAttachedImage();
+                var active = hasText || hasImage;
+                btnPost.disabled = !active;
+                btnPost.className = 'btn-demo btn-demo-post' + (active ? ' active' : '');
+            }
+
+            function runAnalysis() {
+                var text = commentInput.value || '';
+                var result = analyze(text);
+                updateDetail(result);
+                updateInlineNudge(result);
+                updatePostButton();
+                return result;
+            }
+
+            function showCenterPopup(el, duration) {
+                el.classList.add('show');
+                setTimeout(function () { el.classList.remove('show'); }, duration || 3000);
+            }
+
+            function shakeInput() {
+                var wrap = commentInput.closest('.admin-list-section');
+                if (wrap) { wrap.classList.add('shake'); setTimeout(function () { wrap.classList.remove('shake'); }, 500); }
+            }
+
+            commentInput.addEventListener('input', runAnalysis);
+
+            btnPost.addEventListener('click', function () {
+                if (btnPost.disabled) return;
+                if (hasAttachedImage()) {
+                    showCenterPopup(popupImageDanger);
+                    shakeInput();
+                    return;
+                }
+                var result = analyze(commentInput.value || '');
+                if (result.level === 'danger') {
+                    showCenterPopup(popupDanger);
+                    shakeInput();
+                    return;
+                }
+                if (result.level === 'warning') {
+                    showCenterPopup(popupWarningConfirm);
+                    return;
+                }
+                alert('게시되었습니다 (데모: 실제 전송 없음)');
+                commentInput.value = '';
+                imageFileInput.value = '';
+                imagePreview.src = '';
+                imagePreviewWrap.classList.remove('show');
+                runAnalysis();
+            });
+
+            var imageFileInput = document.getElementById('imageFileInput');
+            var imagePreviewWrap = document.getElementById('imagePreviewWrap');
+            var imagePreview = document.getElementById('imagePreview');
+            var imagePreviewRemove = document.getElementById('imagePreviewRemove');
+
+            btnImage.addEventListener('click', function () {
+                imageFileInput.click();
+            });
+
+            imageFileInput.addEventListener('change', function () {
+                if (!this.files || !this.files[0]) return;
+                var file = this.files[0];
+                if (!file.type.match(/^image\//)) return;
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    imagePreview.src = e.target.result;
+                    imagePreviewWrap.classList.add('show');
+                };
+                reader.readAsDataURL(file);
+                updatePostButton();
+            });
+
+            imagePreviewRemove.addEventListener('click', function () {
+                imageFileInput.value = '';
+                imagePreview.src = '';
+                imagePreviewWrap.classList.remove('show');
+                updatePostButton();
+            });
+
+            document.querySelectorAll('.example-row').forEach(function (row) {
+                row.addEventListener('click', function () {
+                    var text = this.getAttribute('data-text') || '';
+                    commentInput.value = text;
+                    runAnalysis();
+                });
+            });
+
+            runAnalysis();
+        })();
+    </script>
+</body>
+</html>
