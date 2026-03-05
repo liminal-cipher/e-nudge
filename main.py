@@ -120,7 +120,7 @@ async def analyze_image_ai(image_bytes: bytes):
                 prob = float(top['probability'])
                 
                 # 임계값(0.5) 처리
-                if prob < 0.5:
+                if prob < 0.2:
                     return {"label": "neutral", "probability": prob}
                 
                 return {"label": top['tagName'], "probability": prob}
