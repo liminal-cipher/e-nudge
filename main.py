@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, Depends, HTTPException, File, UploadFile, 
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
@@ -18,12 +19,16 @@ from fastapi.concurrency import run_in_threadpool
 from database import get_db, engine
 import models
 
+# DB 테이블 생성
+models.Base.metadata.create_all(bind=engine)
+
 app = FastAPI()
 
 # --- [0. AI 모델 설정값] ---
 CUSTOM_VISION_URL = "https://gdscs-prediction.cognitiveservices.azure.com/customvision/v3.0/Prediction/720991f1-25e4-4d32-968d-0e00abbb1166/classify/iterations/Iteration5/image"
 CUSTOM_VISION_KEY = "***REMOVED***"
 
+# 모델 로드 (경로 확인 필요)
 try:
     lr_model = joblib.load("lr_model.pkl")
     tfidf_vectorizer = joblib.load("tfidf_vectorizer.pkl")
@@ -43,7 +48,7 @@ try:
 except Exception as e:
     print(f"⚠️ Storage 연결 설정 실패: {e}")
 
-# --- [AI 분석 보조 함수들] ---
+# --- [2. AI 분석 보조 함수들] ---
 
 def clean_text(text):
     if not isinstance(text, str): return ""
@@ -68,6 +73,7 @@ async def analyze_text_ai(text: str):
             tokenized = tokenize(cleaned)
             if not tokenized: return None
             vector = tfidf_vectorizer.transform([tokenized])
+            # 확률 추출 (none, offensive, hate 순서 가정)
             return lr_model.predict_proba(vector)[0]
 
         probs = await run_in_threadpool(predict_sync)
@@ -85,19 +91,16 @@ async def analyze_image_ai(image_bytes: bytes):
     try:
         headers = {"Prediction-Key": CUSTOM_VISION_KEY, "Content-Type": "application/octet-stream"}
         async with httpx.AsyncClient() as client:
-            # 타임아웃을 설정하여 무한 대기 방지 (B3 사양에 맞춰 10초)
             response = await client.post(CUSTOM_VISION_URL, content=image_bytes, headers=headers, timeout=10.0)
             
         if response.status_code == 200:
             result = response.json()
             predictions = result.get('predictions', [])
             if predictions:
-                # [개선] 확률(probability)이 가장 높은 태그를 선택
                 top = max(predictions, key=lambda x: x['probability'])
                 print(f"📸 [IMAGE AI] 분석 완료: {top['tagName']} ({top['probability']:.2%})")
                 return {"label": top['tagName'], "probability": float(top['probability'])}
         
-        print(f"⚠️ [IMAGE AI] 분석 실패 (Status: {response.status_code})")
         return {"label": "unknown", "probability": 0.0}
     except Exception as e:
         print(f"❌ [IMAGE AI] 예외 발생: {e}")
@@ -116,7 +119,8 @@ async def upload_image_to_blob(contents: bytes, filename: str, content_type: str
         print(f"❌ [Storage] 업로드 실패: {e}")
         return None
 
-# --- [3. 댓글(Comment) 로직] ---
+# --- [3. API 엔드포인트] ---
+
 @app.post("/comments")
 async def create_comment(
     content: Optional[str] = Form(None),
@@ -125,8 +129,6 @@ async def create_comment(
     db: Session = Depends(get_db)
 ):
     try:
-        print(f"📢 댓글 요청 수신: post_id={post_id}")
-        
         text_ai_res = {"label": "none", "score": 0.0}
         image_ai_res = {"label": "clean", "probability": 0.0}
         uploaded_url = None
@@ -135,28 +137,22 @@ async def create_comment(
         if content and content.strip():
             text_ai_res = await analyze_text_ai(content)
 
-        # 2. 이미지 처리 (분석과 업로드를 병렬로 진행하여 속도 향상)
+        # 2. 이미지 처리
         if image and image.filename:
             image_data = await image.read()
             if image_data:
-                print(f"📸 이미지 처리 시작: {len(image_data)} bytes")
                 image_task = analyze_image_ai(image_data)
                 upload_task = upload_image_to_blob(image_data, image.filename, image.content_type)
-                
-                # 병렬 대기
                 image_ai_res, uploaded_url = await asyncio.gather(image_task, upload_task)
 
-        # 3. 최종 판별 라벨 결정 로직
+        # 3. 최종 판별 (이미지 우선순위 전략)
         final_label = text_ai_res["label"]
-        
-        # 이미지 라벨이 'clean' 계열이 아니고 확률이 60% 이상인 경우만 반영
         img_label = image_ai_res["label"].lower()
         if img_label not in ["clean", "no_image", "error", "unknown"]:
             if image_ai_res["probability"] > 0.6:
-                # 텍스트가 정상(none)이더라도 이미지가 유해하면 이미지 라벨을 우선순위로 둠
                 final_label = f"unsafe_image_{img_label}"
 
-        # 4. DB 저장
+        # 4. DB 저장 (user_id는 현재 샘플로 6번 사용)
         new_comment = models.Comment(
             post_id=post_id,
             user_id=6,
@@ -170,15 +166,12 @@ async def create_comment(
         db.commit()
         db.refresh(new_comment)
         
-        print(f"✅ 댓글 저장 완료: ID {new_comment.id} / 최종라벨: {final_label}")
-        return {"status": "success", "ai_result": {"text": text_ai_res, "image": image_ai_res}}
+        return {"status": "success", "id": new_comment.id, "ai_result": {"text": text_ai_res, "image": image_ai_res}}
 
     except Exception as e:
         if db: db.rollback()
-        print(f"❌ [Comment Error] {e}")
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
-# --- [게시글 조회 및 기타 로직] ---
 @app.post("/posts")
 async def create_post(title: str = Form("제목 없음"), content: str = Form(...), db: Session = Depends(get_db)):
     try:
@@ -209,7 +202,16 @@ async def get_posts(db: Session = Depends(get_db)):
         })
     return result
 
+# --- [4. 페이지 렌더링] ---
+
 templates = Jinja2Templates(directory="templates")
+
 @app.get("/", response_class=HTMLResponse)
-async def read_item(request: Request):
+async def read_main(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/admin", response_class=HTMLResponse)
+async def read_admin(request: Request):
+    return templates.TemplateResponse("admin.html", {"request": request})
+
+# 서버 실행 시: uvicorn main:app --reload

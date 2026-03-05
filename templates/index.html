@@ -26,11 +26,13 @@
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 20px; position: fixed; top: 0; left: 0; right: 0; z-index: 100;
         }
-        .header-logo { color: var(--primary); font-weight: 800; font-size: 20px; display: flex; align-items: center; cursor: pointer; }
+        .header-logo { color: var(--primary); font-weight: 800; font-size: 20px; display: flex; align-items: center; cursor: pointer; text-decoration: none; }
         .header-logo span { color: #333; margin-left: 8px; font-size: 16px; letter-spacing: -0.5px; }
         .search-bar { background: #f1f3f5; border-radius: 20px; padding: 8px 20px; width: 350px; display: flex; align-items: center; }
         .search-bar input { border: none; background: transparent; outline: none; width: 100%; margin-left: 10px; font-size: 14px; }
-        .header-icons { display: flex; gap: 22px; color: #555; font-size: 18px; }
+        .header-icons { display: flex; gap: 22px; color: #555; font-size: 18px; align-items: center; }
+        .header-icon-link { color: inherit; text-decoration: none; transition: color 0.2s; }
+        .header-icon-link:hover { color: var(--primary); }
 
         .wrapper { display: flex; padding-top: 60px; }
 
@@ -47,12 +49,33 @@
         .nav-icon.active { background: var(--primary); color: white; }
 
         /* 메인 영역 */
-        .main-container { margin-left: 70px; flex: 1; display: flex; justify-content: center; padding: 30px 20px; }
+        .main-container { margin-left: 70px; flex: 1; display: flex; flex-direction: column; align-items: center; padding: 18px 20px; }
+        .main-content-wrap { width: 985px; max-width: 100%; display: flex; flex-direction: column; }
+        .main-inner { display: flex; justify-content: center; gap: 0; margin-top: 32px; }
         .content-area { width: 680px; margin-right: 25px; }
 
-        .tabs { display: flex; justify-content: center; gap: 60px; margin-bottom: 25px; font-weight: 600; color: var(--text-sub); }
-        .tabs span { cursor: pointer; padding-bottom: 8px; }
-        .tabs span.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+        /* 아티스트 페이지 상단 */
+        .artist-page-header {
+            width: 100%; box-sizing: border-box;
+            height: 64px; overflow: visible;
+            background: var(--white); border: 1px solid var(--border); border-radius: 15px;
+            margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            display: flex; align-items: flex-end; gap: 20px; padding: 0 24px 0 24px;
+        }
+        .artist-page-header .artist-avatar-wrap {
+            width: 80px; height: 80px; border-radius: 50%; background: #fff;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            margin-bottom: -40px;
+        }
+        .artist-page-header .artist-avatar {
+            width: 72px; height: 72px; border-radius: 50%; background: #e9ecef;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: 800; color: var(--text-sub);
+        }
+        .artist-page-header .artist-name {
+            font-weight: 800; font-size: 20px; color: var(--text-main);
+            margin-bottom: -36px;
+        }
 
         /* 게시글 작성 박스 */
         .post-write-card {
@@ -70,7 +93,6 @@
             border-top: 1px solid #f8f9fa; padding-top: 15px; margin-top: 10px;
         }
         .write-tools { display: flex; gap: 18px; color: #666; font-size: 19px; }
-        
         .btn-submit-post {
             background: #eee; color: #999; border: none; padding: 10px 24px;
             border-radius: 25px; font-weight: 700; cursor: pointer; transition: 0.3s;
@@ -93,63 +115,64 @@
         .comment-user { font-weight: 700; font-size: 13px; }
         .ai-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; color: white; font-weight: 600; text-transform: uppercase; }
         .comment-text { font-size: 14px; line-height: 1.4; color: #444; }
-        
-        .comment-attached-img { 
-            width: 150px; height: 150px; object-fit: cover; 
-            border-radius: 8px; margin-top: 10px; display: block; 
-            border: 1px solid #ddd; cursor: zoom-in; transition: 0.2s;
-        }
-        .comment-attached-img:hover { transform: scale(1.02); }
+        .comment-attached-img { width: 150px; height: 150px; object-fit: cover; border-radius: 8px; margin-top: 10px; display: block; border: 1px solid #ddd; cursor: zoom-in; }
 
         /* 댓글 입력창 */
-        .comment-input-wrap { background: #f1f3f5; border-radius: 12px; padding: 15px; margin-top: 20px; }
-        .comment-input-wrap textarea { 
-            width: 100%; background: transparent; border: none; outline: none; 
-            resize: none; font-size: 14px; font-family: inherit; min-height: 40px;
-        }
+        .comment-input-wrap { background: #f1f3f5; border-radius: 12px; padding: 15px; margin-top: 20px; transition: transform 0.1s; }
+        .comment-input-wrap textarea { width: 100%; background: transparent; border: none; outline: none; resize: none; font-size: 14px; font-family: inherit; min-height: 40px; }
         .comment-btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-        .btn-comment-submit {
-            background: none; border: none; color: #adb5bd; font-weight: 700; 
-            font-size: 14px; cursor: pointer; transition: 0.2s; padding: 5px 10px;
-        }
+        .btn-comment-submit { background: none; border: none; color: #adb5bd; font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.2s; padding: 5px 10px; }
         .btn-comment-submit.active { color: var(--primary); }
 
-        /* 미리보기 스타일 */
-        .preview-container { position: relative; display: inline-block; }
-        .preview-container img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 1px solid #ddd; }
-        .preview-container .cancel-btn { 
-            position: absolute; top: -5px; right: -5px; background: #333; color: white; 
-            border-radius: 50%; width: 18px; height: 18px; font-size: 10px; 
-            display: flex; align-items: center; justify-content: center; cursor: pointer;
-        }
-
-        /* 모달 스타일 */
-        .modal-overlay {
-            display: none; position: fixed; z-index: 10000; left: 0; top: 0;
-            width: 100%; height: 100%; background-color: rgba(0,0,0,0.9);
-            cursor: zoom-out; align-items: center; justify-content: center;
-        }
-        .modal-content { max-width: 90%; max-height: 90%; border-radius: 5px; animation: zoom 0.3s; }
-        @keyframes zoom { from {transform:scale(0.8)} to {transform:scale(1)} }
-
         /* 우측 위젯 */
-        .right-sidebar { width: 280px; }
+        .right-sidebar { width: 280px; position: sticky; top: 80px; align-self: flex-start; }
         .widget { background: var(--white); border-radius: 15px; border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; }
         .widget-title { font-weight: 700; font-size: 14px; margin-bottom: 15px; display: flex; align-items: center; }
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .stat-box { background: #f8f9fa; border-radius: 10px; padding: 15px 5px; text-align: center; }
         .stat-num { font-size: 20px; font-weight: 800; margin-bottom: 3px; }
 
+        .widget-demo-card {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px; background: linear-gradient(135deg, #e8faf9 0%, #f0fdfc 100%);
+            border-radius: 12px; border: 1px solid rgba(18, 211, 207, 0.3);
+            cursor: pointer; transition: 0.25s; text-decoration: none; color: var(--text-main);
+        }
+        .widget-demo-card:hover { background: linear-gradient(135deg, #d4f5f4 0%, #e0faf9 100%); }
+
+        .guide-list { list-style: none; padding: 0; margin: 0; font-size: 13px; color: #555; line-height: 1.7; }
+        .guide-list li { padding-left: 18px; position: relative; margin-bottom: 8px; }
+        .guide-list li::before { content: "•"; position: absolute; left: 0; color: var(--primary); font-weight: 700; }
+
+        /* 넛지 팝업 */
+        .nudge-popup {
+            display: none; position: fixed; z-index: 10001; left: 50%; top: 50%;
+            transform: translate(-50%, -50%); padding: 18px 24px;
+            background: #dc3545; color: #fff; border-radius: 14px;
+            font-weight: 700; font-size: 15px; text-align: center;
+            box-shadow: 0 8px 24px rgba(220, 53, 69, 0.45);
+            animation: nudgePop 0.3s ease-out;
+        }
+        .nudge-popup.show { display: block; }
+
+        @keyframes nudgePop { from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
         @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); } 20%, 40%, 60%, 80% { transform: translateX(6px); } }
+        .shake { animation: shake 0.6s ease-in-out; }
     </style>
 </head>
 <body>
 
     <header class="header">
-        <div class="header-logo" onclick="location.reload()"><i class="fa-solid fa-feather-pointed"></i> <span>댓글 <b>넛지</b></span></div>
+        <a href="/" class="header-logo"><i class="fa-solid fa-feather-pointed"></i> <span>댓글 <b>넛지</b></span></a>
         <div class="search-bar"><i class="fa-solid fa-magnifying-glass" style="color:#adb5bd"></i><input type="text" placeholder="검색"></div>
-        <div class="header-icons"><i class="fa-solid fa-shield-cat"></i><i class="fa-solid fa-bell"></i><i class="fa-solid fa-user"></i></div>
+        <div class="header-icons">
+            <i class="fa-solid fa-flask"></i>
+            <a href="/admin" class="header-icon-link" title="관리자 모니터링"><i class="fa-solid fa-shield-halved"></i></a>
+            <i class="fa-solid fa-bell"></i>
+            <i class="fa-solid fa-user"></i>
+        </div>
     </header>
 
     <div class="wrapper">
@@ -161,43 +184,63 @@
         </div>
 
         <div class="main-container">
-            <div class="content-area">
-                <div class="tabs"><span class="active">Feed</span><span>Artist</span><span>Media</span></div>
-
-                <div class="post-write-card">
-                    <div class="write-header">
-                        <div class="nav-icon" style="width:35px; height:35px; margin:0; background:var(--primary); color:white;">ME</div>
-                        <span class="user-label">나의 소식 남기기</span>
+            <div class="main-content-wrap">
+                <header class="artist-page-header">
+                    <div class="artist-avatar-wrap">
+                        <div class="artist-avatar">NJ</div>
                     </div>
-                    <textarea id="mainPostInput" placeholder="오늘 어떤 일이 있었나요?" oninput="checkPostLength()"></textarea>
-                    <div class="write-footer">
-                        <div class="write-tools">
-                            <i class="fa-regular fa-image" style="cursor:not-allowed; opacity:0.5;"></i> <i class="fa-regular fa-face-smile"></i>
+                    <div class="artist-name">NewJeans</div>
+                </header>
+
+                <div class="main-inner">
+                    <div class="content-area">
+                        <div class="post-write-card">
+                            <div class="write-header">
+                                <div class="nav-icon" style="width:35px; height:35px; margin:0; background:var(--primary); color:white;">ME</div>
+                                <span class="user-label">나의 소식 남기기</span>
+                            </div>
+                            <textarea id="mainPostInput" placeholder="오늘 어떤 일이 있었나요?" oninput="checkPostLength()"></textarea>
+                            <div class="write-footer">
+                                <div class="write-tools"><i class="fa-regular fa-image"></i> <i class="fa-regular fa-face-smile"></i></div>
+                                <button id="mainPostBtn" class="btn-submit-post" onclick="submitNewPost()">게시하기</button>
+                            </div>
                         </div>
-                        <button id="mainPostBtn" class="btn-submit-post" onclick="submitNewPost()">게시하기</button>
+                        <div id="feedContent"></div>
                     </div>
-                </div>
 
-                <div id="feedContent"></div>
-            </div>
+                    <div class="right-sidebar">
+                        <div class="widget">
+                            <div class="widget-title"><i class="fa-solid fa-play-circle" style="color:var(--primary); margin-right:8px;"></i> 실시간 데모</div>
+                            <a href="#" class="widget-demo-card" onclick="location.reload(); return false;">
+                                <div><div class="demo-text">실시간 데모 보기</div><div class="demo-sub">AI 댓글 분석 체험</div></div>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </a>
+                        </div>
 
-            <div class="right-sidebar">
-                <div class="widget">
-                    <div class="widget-title"><i class="fa-solid fa-chart-simple" style="color:var(--primary); margin-right:8px;"></i> AI 분석 통계</div>
-                    <div class="stat-grid">
-                        <div class="stat-box"><div class="stat-num" id="totalPosts" style="color:var(--primary)">0</div><div style="font-size:11px; color:var(--text-sub);">게시글</div></div>
-                        <div class="stat-box"><div class="stat-num" style="color:#ffcc00">0</div><div style="font-size:11px; color:var(--text-sub);">주의</div></div>
-                        <div class="stat-box"><div class="stat-num" style="color:#ff5a5a">0</div><div style="font-size:11px; color:var(--text-sub);">위험</div></div>
-                        <div class="stat-box"><div class="stat-num" style="color:#28a745">0</div><div style="font-size:11px; color:var(--text-sub);">안전</div></div>
+                        <div class="widget">
+                            <div class="widget-title"><i class="fa-solid fa-chart-simple" style="color:var(--primary); margin-right:8px;"></i> AI 분석 통계</div>
+                            <div class="stat-grid">
+                                <div class="stat-box"><div class="stat-num" id="totalPosts" style="color:var(--primary)">0</div><div style="font-size:11px; color:var(--text-sub);">게시글</div></div>
+                                <div class="stat-box"><div class="stat-num" id="statWarning" style="color:#ffcc00">0</div><div style="font-size:11px; color:var(--text-sub);">주의</div></div>
+                                <div class="stat-box"><div class="stat-num" id="statDanger" style="color:#ff5a5a">0</div><div style="font-size:11px; color:var(--text-sub);">위험</div></div>
+                                <div class="stat-box"><div class="stat-num" id="statSafe" style="color:#28a745">0</div><div style="font-size:11px; color:var(--text-sub);">안전</div></div>
+                            </div>
+                        </div>
+
+                        <div class="widget">
+                            <div class="widget-title"><i class="fa-solid fa-circle-info" style="color:var(--primary); margin-right:8px;"></i> 커뮤니티 안내</div>
+                            <ul class="guide-list">
+                                <li>따뜻하고 존중하는 댓글을 남겨주세요.</li>
+                                <li>AI가 유해·위험 표현을 실시간 감지합니다.</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="imageModal" class="modal-overlay" onclick="closeImageModal()">
-        <img class="modal-content" id="fullImage">
-    </div>
+    <div id="nudgePopup" class="nudge-popup">🚫 명백한 욕설/비방이 감지되었습니다. 게시가 차단됩니다.</div>
 
     <script>
         window.addEventListener('DOMContentLoaded', loadFeed);
@@ -206,11 +249,28 @@
             try {
                 const response = await fetch("/posts");
                 if (response.ok) {
-                    let posts = await response.json();
+                    const posts = await response.json();
                     const feed = document.getElementById('feedContent');
                     feed.innerHTML = ''; 
-                    posts.forEach(post => renderPostToFeed(post));
+
+                    let safeCount = 0, warningCount = 0, dangerCount = 0;
+
+                    posts.forEach(post => {
+                        renderPostToFeed(post);
+                        if (post.comments) {
+                            post.comments.forEach(c => {
+                                const label = c.label.toLowerCase();
+                                if (label === 'none' || label === 'safe' || label.includes('clean')) safeCount++;
+                                else if (label === 'hate') dangerCount++;
+                                else warningCount++;
+                            });
+                        }
+                    });
+
                     document.getElementById('totalPosts').innerText = posts.length;
+                    document.getElementById('statSafe').innerText = safeCount;
+                    document.getElementById('statWarning').innerText = warningCount;
+                    document.getElementById('statDanger').innerText = dangerCount;
                 }
             } catch (error) { console.error("피드 로드 실패:", error); }
         }
@@ -237,83 +297,33 @@
                         <span><i class="fa-regular fa-comment"></i> ${post.comments ? post.comments.length : 0}</span>
                     </div>
                     
-                    <div class="comment-list" id="comment-list-${postId}">
+                    <div class="comment-list">
                         ${post.comments ? post.comments.map(c => {
-                            const isUnsafe = c.label !== 'none' && c.label !== 'safe' && !c.label.includes('clean');
+                            const isUnsafe = !(c.label === 'none' || c.label === 'safe' || c.label.includes('clean'));
                             const badgeBg = isUnsafe ? 'var(--danger)' : 'var(--safe)';
-                            const displayScore = c.score ? (c.score * 100).toFixed(1) : '0.0';
-
                             return `
                                 <div class="comment-item">
-                                    <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd; border-radius:50%; margin-right:8px; flex-shrink:0;">
-                                        ${(c.username || '익').substring(0,1)}
-                                    </div>
+                                    <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd; border-radius:50%; margin-right:8px; flex-shrink:0;">${(c.username || '익').substring(0,1)}</div>
                                     <div class="comment-content">
                                         <div class="comment-user-row">
                                             <span class="comment-user">${c.username || '익명'}</span>
-                                            <span class="ai-badge" style="background:${badgeBg}">
-                                                ${c.label} (${displayScore}%)
-                                            </span>
+                                            <span class="ai-badge" style="background:${badgeBg}">${c.label}</span>
                                         </div>
                                         <div class="comment-text">${c.content}</div>
-                                        ${c.image_url ? `
-                                            <img src="${c.image_url}" class="comment-attached-img" onclick="openImageModal('${c.image_url}')">
-                                        ` : ''}
                                     </div>
-                                </div>
-                            `;
+                                </div>`;
                         }).join('') : ''}
                     </div>
 
                     <div class="comment-input-wrap">
-                        <div id="comment-img-preview-${postId}" style="display:none; margin-bottom:10px;">
-                            <div class="preview-container">
-                                <img src="" id="preview-img-${postId}">
-                                <div class="cancel-btn" onclick="cancelCommentImg(${postId})"><i class="fa-solid fa-xmark"></i></div>
-                            </div>
-                        </div>
                         <textarea id="comment-input-${postId}" placeholder="따뜻한 댓글을 남겨주세요..." oninput="checkCommentLength(${postId})"></textarea>
                         <div class="comment-btn-row">
-                            <div class="comment-tools">
-                                <input type="file" id="comment-file-${postId}" style="display:none;" accept="image/*" onchange="previewCommentImg(this, ${postId})">
-                                <i class="fa-regular fa-image" style="cursor:pointer; color:#888; font-size:18px;" onclick="document.getElementById('comment-file-${postId}').click()"></i>
-                            </div>
+                            <i class="fa-regular fa-image" style="color:#888; cursor:pointer;"></i>
                             <button id="comment-btn-${postId}" class="btn-comment-submit" onclick="submitComment(${postId})">등록</button>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
             feed.insertAdjacentHTML('beforeend', postHtml);
-        }
-
-        function openImageModal(imgSrc) {
-            const modal = document.getElementById('imageModal');
-            document.getElementById('fullImage').src = imgSrc;
-            modal.style.display = "flex";
-            document.body.style.overflow = "hidden";
-        }
-
-        function closeImageModal() {
-            document.getElementById('imageModal').style.display = "none";
-            document.body.style.overflow = "auto";
-        }
-
-        function previewCommentImg(input, postId) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    document.getElementById(`preview-img-${postId}`).src = e.target.result;
-                    document.getElementById(`comment-img-preview-${postId}`).style.display = 'block';
-                    checkCommentLength(postId);
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        function cancelCommentImg(postId) {
-            document.getElementById(`comment-file-${postId}`).value = ""; 
-            document.getElementById(`comment-img-preview-${postId}`).style.display = 'none';
-            checkCommentLength(postId);
         }
 
         async function submitNewPost() {
@@ -325,58 +335,37 @@
             if (response.ok) { input.value = ''; loadFeed(); }
         }
 
-        /* 🚀 [수정됨] 댓글 제출 함수: 타임아웃 및 예외 처리 강화 */
         async function submitComment(postId) {
             const textInput = document.getElementById(`comment-input-${postId}`);
-            const fileInput = document.getElementById(`comment-file-${postId}`);
-            if (!textInput.value.trim() && !fileInput.files[0]) return;
+            if (!textInput.value.trim()) return;
 
             const btn = document.getElementById(`comment-btn-${postId}`);
+            const wrap = document.querySelector(`#post-${postId} .comment-input-wrap`);
             btn.disabled = true;
-            btn.innerText = "분석 중...";
 
             const formData = new FormData();
             formData.append('content', textInput.value.trim());
             formData.append('post_id', postId);
-            if (fileInput.files[0]) formData.append('image', fileInput.files[0]);
-
-            // 타임아웃 설정을 위한 AbortController 추가
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30초 후 중단
 
             try {
-                const response = await fetch("/comments", { 
-                    method: "POST", 
-                    body: formData,
-                    signal: controller.signal // 타임아웃 신호 연결
-                });
-
+                const response = await fetch("/comments", { method: "POST", body: formData });
                 if (response.ok) {
                     const result = await response.json();
-                    console.group(`🔍 AI 분석 완료 (Post #${postId})`);
-                    console.log("📝 텍스트 모델 결과:", result.ai_result.text);
-                    console.log("🖼️ 커스텀 비전 결과:", result.ai_result.image);
-                    console.groupEnd();
-
-                    textInput.value = '';
-                    cancelCommentImg(postId);
-                    loadFeed(); 
-                } else {
-                    alert("서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+                    const label = result.ai_result?.text?.label || 'none';
+                    if (label === 'hate' || label === 'offensive') {
+                        document.getElementById('nudgePopup').classList.add('show');
+                        wrap.classList.add('shake');
+                        setTimeout(() => { 
+                            document.getElementById('nudgePopup').classList.remove('show');
+                            wrap.classList.remove('shake');
+                        }, 2500);
+                    } else {
+                        textInput.value = '';
+                        loadFeed();
+                    }
                 }
-            } catch (err) {
-                if (err.name === 'AbortError') {
-                    console.error("요청 시간이 너무 오래 걸립니다!");
-                    alert("분석 시간이 너무 오래 걸려 요청을 중단했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해 주세요.");
-                } else {
-                    console.error("댓글 전송 실패", err);
-                    alert("댓글을 전송하는 중 문제가 발생했습니다.");
-                }
-            } finally {
-                clearTimeout(timeoutId); // 타임아웃 해제
-                btn.disabled = false;
-                btn.innerText = "등록";
-            }
+            } catch (err) { console.error(err); }
+            finally { btn.disabled = false; }
         }
 
         function checkPostLength() {
@@ -386,8 +375,7 @@
 
         function checkCommentLength(id) {
             const input = document.getElementById(`comment-input-${id}`);
-            const hasFile = document.getElementById(`comment-file-${id}`).files.length > 0;
-            document.getElementById(`comment-btn-${id}`).classList.toggle('active', input.value.trim().length > 0 || hasFile);
+            document.getElementById(`comment-btn-${id}`).classList.toggle('active', input.value.trim().length > 0);
         }
     </script>
 </body>

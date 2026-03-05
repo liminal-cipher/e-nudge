@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 모니터링 | 댓글 넛지</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #12d3cf;
+            --bg: #f8f9fa;
+            --white: #ffffff;
+            --text-main: #333;
+            --text-sub: #888;
+            --border: #eeeeee;
+            --safe: #28a745;
+            --danger: #ff5a5a;
+            --warning: #f0ad4e;
+        }
+
+        body { font-family: 'Pretendard', sans-serif; background-color: var(--bg); margin: 0; color: var(--text-main); }
+
+        /* 헤더 - index.html과 통일 */
+        .header {
+            height: 60px; background: var(--white); border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+        }
+        .header-logo { color: var(--primary); font-weight: 800; font-size: 20px; display: flex; align-items: center; cursor: pointer; text-decoration: none; }
+        .header-logo span { color: #333; margin-left: 8px; font-size: 16px; letter-spacing: -0.5px; }
+        .search-bar { background: #f1f3f5; border-radius: 20px; padding: 8px 20px; width: 350px; display: flex; align-items: center; }
+        .search-bar input { border: none; background: transparent; outline: none; width: 100%; margin-left: 10px; font-size: 14px; }
+        .header-icons { display: flex; gap: 22px; color: #555; font-size: 18px; align-items: center; }
+        .header-icon-link { color: inherit; text-decoration: none; transition: color 0.2s; }
+        .header-icon-link:hover { color: var(--primary); }
+
+        .admin-wrap { max-width: 900px; margin: 0 auto; padding: 40px 20px; padding-top: 100px; }
+
+        /* 상단 바 */
+        .admin-back {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--primary); font-weight: 700; font-size: 14px; text-decoration: none;
+            margin-bottom: 28px; transition: opacity 0.2s;
+        }
+        .admin-back:hover { opacity: 0.85; }
+
+        /* 페이지 타이틀 */
+        .admin-title { font-weight: 800; font-size: 28px; color: var(--primary); margin: 0 0 8px 0; }
+        .admin-desc { font-size: 15px; color: var(--text-sub); margin: 0 0 32px 0; }
+
+        /* 요약 카드 */
+        .admin-cards {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+            margin-bottom: 32px;
+        }
+        .admin-card {
+            background: var(--white); border: 1px solid var(--border); border-radius: 15px;
+            padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            text-align: center;
+        }
+        .admin-card-num { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+        .admin-card-label { font-size: 13px; color: var(--text-main); display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .admin-card.card-total .admin-card-num { color: #333; }
+        .admin-card.card-safe .admin-card-num { color: var(--safe); }
+        .admin-card.card-warning .admin-card-num { color: var(--warning); }
+        .admin-card.card-danger .admin-card-num { color: var(--danger); }
+
+        /* 탭 메뉴 */
+        .admin-tabs { display: flex; gap: 12px; margin-bottom: 20px; }
+        .admin-tab {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 12px 20px; border-radius: 12px; font-weight: 700; font-size: 14px;
+            border: 1px solid var(--border); background: var(--white);
+            color: var(--text-sub); cursor: pointer; transition: 0.2s;
+        }
+        .admin-tab.active { background: var(--primary); color: var(--white); border-color: var(--primary); }
+
+        /* 리스트 영역 */
+        .admin-list-section {
+            background: var(--white); border: 1px solid var(--border); border-radius: 15px;
+            padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        }
+        .admin-list-title {
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 700; font-size: 16px; color: var(--text-main);
+            margin-bottom: 20px;
+        }
+        .admin-list-title i { color: var(--primary); }
+        .admin-list-items { list-style: none; padding: 0; margin: 0; }
+        .admin-list-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 0; border-bottom: 1px solid #f1f3f5;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .admin-list-item:last-child { border-bottom: none; }
+        .admin-list-item .content { color: var(--text-main); font-weight: 500; margin-bottom: 4px; }
+        .admin-list-item .meta { color: var(--text-sub); font-size: 12px; }
+        .admin-list-item .badge {
+            padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700;
+            white-space: nowrap;
+        }
+        .admin-list-item .badge.safe { background: rgba(40, 167, 69, 0.1); color: var(--safe); }
+        .admin-list-item .badge.warning { background: rgba(240, 173, 78, 0.2); color: var(--warning); }
+        .admin-list-item .badge.danger { background: rgba(255, 90, 90, 0.15); color: var(--danger); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <a href="/" class="header-logo"><i class="fa-solid fa-feather-pointed"></i> <span>댓글 <b>넛지</b></span></a>
+        <div class="search-bar"><i class="fa-solid fa-magnifying-glass" style="color:#adb5bd"></i><input type="text" placeholder="검색"></div>
+        <div class="header-icons">
+            <i class="fa-solid fa-flask"></i>
+            <a href="/admin" class="header-icon-link" title="관리자 모니터링"><i class="fa-solid fa-shield-halved"></i></a>
+            <i class="fa-solid fa-bell"></i>
+            <i class="fa-solid fa-user"></i>
+        </div>
+    </header>
+
+    <div class="admin-wrap">
+        <a href="/" class="admin-back">
+            <i class="fa-solid fa-arrow-left"></i> 커뮤니티로 돌아가기
+        </a>
+
+        <h1 class="admin-title">관리자 모니터링</h1>
+        <p class="admin-desc">경고를 무시하고 게시된 댓글을 실시간으로 추적합니다.</p>
+
+        <div class="admin-cards">
+            <div class="admin-card card-total">
+                <div class="admin-card-num" id="statTotal">0</div>
+                <div class="admin-card-label">총 게시글</div>
+            </div>
+            <div class="admin-card card-safe">
+                <div class="admin-card-num" id="statSafe">0</div>
+                <div class="admin-card-label"><i class="fa-solid fa-check"></i> 안전</div>
+            </div>
+            <div class="admin-card card-warning">
+                <div class="admin-card-num" id="statWarning">0</div>
+                <div class="admin-card-label"><i class="fa-solid fa-triangle-exclamation"></i> 주의 무시</div>
+            </div>
+            <div class="admin-card card-danger">
+                <div class="admin-card-num" id="statDanger">0</div>
+                <div class="admin-card-label"><i class="fa-solid fa-circle-minus"></i> 위험 차단</div>
+            </div>
+        </div>
+
+        <div class="admin-tabs">
+            <button type="button" class="admin-tab active" data-tab="warning">
+                <i class="fa-solid fa-triangle-exclamation"></i> 경고 무시 목록
+            </button>
+            <button type="button" class="admin-tab" data-tab="all">
+                <i class="fa-solid fa-list"></i> 전체 게시글
+            </button>
+        </div>
+
+        <section class="admin-list-section">
+            <h2 class="admin-list-title">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span id="listHeading">경고를 무시하고 게시된 댓글</span>
+            </h2>
+            <ul class="admin-list-items" id="adminList">
+                </ul>
+        </section>
+    </div>
+
+    <script>
+        let allPosts = [];
+        let currentTab = 'warning';
+
+        window.addEventListener('DOMContentLoaded', fetchAdminData);
+
+        // 탭 전환 이벤트
+        document.querySelectorAll('.admin-tab').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                currentTab = this.getAttribute('data-tab');
+                document.getElementById('listHeading').textContent = 
+                    currentTab === 'warning' ? '경고를 무시하고 게시된 댓글' : '전체 게시글 모니터링';
+                
+                renderList();
+            });
+        });
+
+        async function fetchAdminData() {
+            try {
+                const response = await fetch("/posts");
+                if (response.ok) {
+                    allPosts = await response.json();
+                    updateStats();
+                    renderList();
+                }
+            } catch (error) {
+                console.error("데이터 로드 실패:", error);
+            }
+        }
+
+        function updateStats() {
+            let total = allPosts.length;
+            let safe = 0, warning = 0, danger = 0;
+
+            allPosts.forEach(post => {
+                if (post.comments) {
+                    post.comments.forEach(c => {
+                        const label = (c.label || 'none').toLowerCase();
+                        if (label === 'none' || label === 'safe' || label.includes('clean')) safe++;
+                        else if (label === 'hate' || label === 'offensive') warning++; // 주의 무시로 간주
+                        else danger++;
+                    });
+                }
+            });
+
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statSafe').innerText = safe;
+            document.getElementById('statWarning').innerText = warning;
+            document.getElementById('statDanger').innerText = danger;
+        }
+
+        function renderList() {
+            const listEl = document.getElementById('adminList');
+            listEl.innerHTML = '';
+
+            let commentsToDisplay = [];
+            
+            // 모든 포스트에서 댓글 추출
+            allPosts.forEach(post => {
+                if (post.comments) {
+                    post.comments.forEach(c => {
+                        commentsToDisplay.push({
+                            ...c,
+                            parentPostId: post.id
+                        });
+                    });
+                }
+            });
+
+            // 필터링: 'warning' 탭일 때는 유해한 댓글만, 'all'일 때는 전체
+            const filtered = currentTab === 'warning' 
+                ? commentsToDisplay.filter(c => !(['none', 'safe'].includes(c.label.toLowerCase()) || c.label.includes('clean')))
+                : commentsToDisplay;
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<li class="admin-list-item" style="justify-content:center; color:#999;">표시할 데이터가 없습니다.</li>`;
+                return;
+            }
+
+            filtered.reverse().forEach(item => { // 최신순
+                const label = (item.label || 'none').toLowerCase();
+                let badgeClass = 'safe';
+                let labelText = '안전';
+
+                if (label === 'hate' || label === 'offensive') {
+                    badgeClass = 'warning';
+                    labelText = '주의 무시';
+                } else if (label !== 'none' && !label.includes('clean')) {
+                    badgeClass = 'danger';
+                    labelText = '위험/차단';
+                }
+
+                const li = document.createElement('li');
+                li.className = 'admin-list-item';
+                li.innerHTML = `
+                    <div>
+                        <div class="content">${item.content}</div>
+                        <div class="meta">게시글 #${item.parentPostId} · ${item.username || '익명'} · 방금 전</div>
+                    </div>
+                    <span class="badge ${badgeClass}">${labelText}</span>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>
