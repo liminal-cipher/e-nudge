@@ -359,28 +359,42 @@
                 const response = await fetch("/comments", { method: "POST", body: formData });
                 if (response.ok) {
                     const result = await response.json();
-                    const textLabel = result.ai_result?.text?.label || 'none';
-                    const imgLabel = (result.ai_result?.image?.label || 'clean').toLowerCase();
-                    const imgProb = result.ai_result?.image?.probability || 0;
+                    
+                    // [수정 포인트] 백엔드에서 이미 계산해서 보낸 final label을 사용합니다.
+                    const finalLabel = result.ai_result?.final?.label || 'none';
+                    const finalScore = result.ai_result?.final?.score || 0;
 
-                    const isUnsafeText = (textLabel === 'hate' || textLabel === 'offensive');
-                    const isUnsafeImg = (imgLabel !== 'clean' && imgLabel !== 'no_image' && imgProb > 0.6);
-
-                    if (isUnsafeText || isUnsafeImg) {
+                    // 'hate'일 때만 차단하고 싶다면 이 조건을 유지, 
+                    // 'offensive'까지 차단하고 싶다면 finalLabel === 'offensive'를 추가하세요.
+                    if (finalLabel === 'hate' || finalLabel.includes('unsafe_image')) {
                         const popup = document.getElementById('nudgePopup');
-                        popup.innerText = isUnsafeText ? "🚫 부적절한 언어가 감지되었습니다." : "🚫 부적절한 이미지가 감지되었습니다.";
+                        
+                        // 에러 메시지 세분화 (이미지 때문인지 텍스트 때문인지)
+                        if (finalLabel.includes('image')) {
+                            popup.innerText = "🚫 부적절한 이미지가 감지되어 게시가 차단되었습니다.";
+                        } else {
+                            popup.innerText = "🚫 부적절한 언어가 감지되어 게시가 차단되었습니다.";
+                        }
+
                         popup.classList.add('show');
                         wrap.classList.add('shake');
-                        setTimeout(() => { popup.classList.remove('show'); wrap.classList.remove('shake'); }, 2500);
+                        setTimeout(() => { 
+                            popup.classList.remove('show'); 
+                            wrap.classList.remove('shake'); 
+                        }, 2500);
                     } else {
+                        // 'none'이거나 'offensive'(차단 안 하기로 했다면)일 때 등록
                         textInput.value = '';
                         fileInput.value = '';
                         removePreview(postId); 
                         loadFeed();
                     }
                 }
-            } catch (err) { console.error(err); }
-            finally { btn.disabled = false; }
+            } catch (err) { 
+                console.error(err); 
+            } finally { 
+                btn.disabled = false; 
+            }
         }
 
         function updateImageIcon(postId) {

@@ -21,7 +21,7 @@
 
         body { font-family: 'Pretendard', sans-serif; background-color: var(--bg); margin: 0; color: var(--text-main); }
 
-        /* 헤더 - index.html과 통일 */
+        /* 헤더 */
         .header {
             height: 60px; background: var(--white); border-bottom: 1px solid var(--border);
             display: flex; align-items: center; justify-content: space-between;
@@ -94,7 +94,7 @@
             animation: fadeIn 0.3s ease-out;
         }
         .admin-list-item:last-child { border-bottom: none; }
-        .admin-list-item .content { color: var(--text-main); font-weight: 500; margin-bottom: 4px; }
+        .admin-list-item .content { color: var(--text-main); font-weight: 500; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
         .admin-list-item .meta { color: var(--text-sub); font-size: 12px; }
         .admin-list-item .badge {
             padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700;
@@ -131,7 +131,7 @@
         <div class="admin-cards">
             <div class="admin-card card-total">
                 <div class="admin-card-num" id="statTotal">0</div>
-                <div class="admin-card-label">총 게시글</div>
+                <div class="admin-card-label">총 댓글</div>
             </div>
             <div class="admin-card card-safe">
                 <div class="admin-card-num" id="statSafe">0</div>
@@ -143,7 +143,7 @@
             </div>
             <div class="admin-card card-danger">
                 <div class="admin-card-num" id="statDanger">0</div>
-                <div class="admin-card-label"><i class="fa-solid fa-circle-minus"></i> 위험 차단</div>
+                <div class="admin-card-label"><i class="fa-solid fa-circle-minus"></i> 위험 탐지</div>
             </div>
         </div>
 
@@ -152,7 +152,7 @@
                 <i class="fa-solid fa-triangle-exclamation"></i> 경고 무시 목록
             </button>
             <button type="button" class="admin-tab" data-tab="all">
-                <i class="fa-solid fa-list"></i> 전체 게시글
+                <i class="fa-solid fa-list"></i> 전체 댓글
             </button>
         </div>
 
@@ -161,8 +161,7 @@
                 <i class="fa-solid fa-shield-halved"></i>
                 <span id="listHeading">경고를 무시하고 게시된 댓글</span>
             </h2>
-            <ul class="admin-list-items" id="adminList">
-                </ul>
+            <ul class="admin-list-items" id="adminList"></ul>
         </section>
     </div>
 
@@ -172,7 +171,6 @@
 
         window.addEventListener('DOMContentLoaded', fetchAdminData);
 
-        // 탭 전환 이벤트
         document.querySelectorAll('.admin-tab').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
@@ -180,7 +178,7 @@
                 
                 currentTab = this.getAttribute('data-tab');
                 document.getElementById('listHeading').textContent = 
-                    currentTab === 'warning' ? '경고를 무시하고 게시된 댓글' : '전체 게시글 모니터링';
+                    currentTab === 'warning' ? '경고를 무시하고 게시된 댓글' : '전체 댓글 모니터링';
                 
                 renderList();
             });
@@ -200,31 +198,39 @@
         }
 
         function updateStats() {
-            let total = allPosts.length;
+            let totalComments = 0;
             let safe = 0, warning = 0, danger = 0;
 
             allPosts.forEach(post => {
                 if (post.comments) {
+                    totalComments += post.comments.length;
                     post.comments.forEach(c => {
                         const label = (c.label || 'none').toLowerCase();
-                        if (label === 'none' || label === 'safe' || label.includes('clean')) safe++;
-                        else if (label === 'hate' || label === 'offensive') warning++; // 주의 무시로 간주
-                        else danger++;
+                        // 1. 안전 (clean, safe, none)
+                        if (label.includes('clean') || label === 'safe' || label === 'none') {
+                            safe++;
+                        } 
+                        // 2. 주의 무시 (hate, offensive)
+                        else if (label === 'hate' || label === 'offensive') {
+                            warning++;
+                        } 
+                        // 3. 기타 위험 탐지
+                        else {
+                            danger++;
+                        }
                     });
                 }
             });
 
-            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statTotal').innerText = totalComments;
             document.getElementById('statSafe').innerText = safe;
             document.getElementById('statWarning').innerText = warning;
             document.getElementById('statDanger').innerText = danger;
         }
 
-        // admin.html의 renderList() 함수 부분 수정 및 추가
-
         function renderList() {
             const listEl = document.getElementById('adminList');
-            listEl.innerHTML = ''; // 하드코딩된 더미 데이터 삭제를 위해 초기화
+            listEl.innerHTML = '';
 
             let commentsToDisplay = [];
             allPosts.forEach(post => {
@@ -235,12 +241,13 @@
                 }
             });
 
+            // 필터링: 'warning' 탭일 때는 안전하지 않은 댓글만 표시
             const filtered = currentTab === 'warning' 
-                ? commentsToDisplay.filter(c => !(['none', 'safe'].includes(c.label.toLowerCase()) || c.label.includes('clean')))
+                ? commentsToDisplay.filter(c => !(['none', 'safe'].includes((c.label || '').toLowerCase()) || (c.label || '').includes('clean')))
                 : commentsToDisplay;
 
             if (filtered.length === 0) {
-                listEl.innerHTML = `<li class="admin-list-item" style="justify-content:center; color:#999; padding:40px;">표시할 데이터가 없습니다.</li>`;
+                listEl.innerHTML = `<li class="admin-list-item" style="justify-content:center; color:#999; padding:40px;">데이터가 없습니다.</li>`;
                 return;
             }
 
@@ -254,19 +261,27 @@
                     labelText = '주의 무시';
                 } else if (label !== 'none' && !label.includes('clean')) {
                     badgeClass = 'danger';
-                    labelText = '위험/차단';
+                    labelText = '위험 탐지';
                 }
 
                 const li = document.createElement('li');
                 li.className = 'admin-list-item';
+                
+                // 이미지 유무 아이콘 표시
+                const imageIcon = item.image_url ? `<i class="fa-regular fa-image" style="color:var(--primary);" title="이미지 포함"></i>` : '';
+
                 li.innerHTML = `
                     <div style="flex: 1;">
-                        <div class="content">${item.content}</div>
-                        <div class="meta">게시글 #${item.parentPostId} · ${item.username || '익명'} · ID:${item.id}</div>
+                        <div class="content">
+                            ${item.content || '(이미지 댓글)'} ${imageIcon}
+                        </div>
+                        <div class="meta">
+                            게시글 #${item.parentPostId} · ${item.username || '익명'} · 스코어: ${item.toxicity_score ? item.toxicity_score.toFixed(2) : '0.00'}
+                        </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <span class="badge ${badgeClass}">${labelText}</span>
-                        <button onclick="deleteComment(${item.id})" style="background:none; border:none; color:#ff5a5a; cursor:pointer; font-size:16px;" title="삭제">
+                        <button onclick="deleteComment(${item.id})" style="background:none; border:none; color:#ff5a5a; cursor:pointer; font-size:16px; padding:5px;" title="삭제">
                             <i class="fa-solid fa-trash-can"></i>
                         </button>
                     </div>
@@ -275,20 +290,18 @@
             });
         }
 
-        // 삭제 함수 추가
         async function deleteComment(commentId) {
-            if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
+            if (!confirm("이 댓글을 삭제하시겠습니까?")) return;
 
             try {
                 const response = await fetch(`/comments/${commentId}`, { method: 'DELETE' });
                 if (response.ok) {
-                    alert("삭제되었습니다.");
-                    fetchAdminData(); // 데이터 다시 로드 및 화면 갱신
+                    fetchAdminData(); // 화면 갱신
                 } else {
-                    alert("삭제에 실패했습니다.");
+                    alert("삭제 실패");
                 }
             } catch (error) {
-                console.error("삭제 요청 오류:", error);
+                console.error("삭제 오류:", error);
             }
         }
     </script>
