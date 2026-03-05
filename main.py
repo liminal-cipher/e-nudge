@@ -71,7 +71,7 @@ def tokenize(text):
         return ""
 
 async def analyze_text_ai(text: str):
-    if not text or not text.strip(): 
+    if not text: 
         return {"label": "none", "score": 0.0}
     try:
         def predict_sync():
@@ -79,18 +79,29 @@ async def analyze_text_ai(text: str):
             tokenized = tokenize(cleaned)
             if not tokenized: return None
             vector = tfidf_vectorizer.transform([tokenized])
-            return lr_model.predict_proba(vector)[0]
-
+            probs = lr_model.predict_proba(vector)[0]
+            print(f"hate: {probs[0]}, none: {probs[1]}, offensive: {probs[2]}")  # 추가, 결과값 확인용
+            return probs
+        
         probs = await run_in_threadpool(predict_sync)
         if probs is None: return {"label": "none", "score": 0.0}
 
-        labels = ['none', 'offensive', 'hate']
-        max_idx = probs.argmax()
-        return {"label": labels[max_idx], "score": float(probs[max_idx])}
+        hate_prob = probs[0]      # ['hate', 'none', 'offensive'] 순서
+        offensive_prob = probs[2]
+
+        toxicity = offensive_prob * 0.5 + hate_prob * 1.0
+
+        if toxicity >= 0.55:
+            label = "hate"
+        elif toxicity >= 0.44:
+            label = "offensive"
+        else:
+            label = "none"
+
+        return {"label": label, "score": float(toxicity)}
     except Exception as e:
         print(f"❌ [TEXT AI] 분석 오류: {e}")
         return {"label": "error", "score": 0.0}
-
 async def analyze_image_ai(image_bytes: bytes):
     if not image_bytes:
         return {"label": "no_image", "probability": 0.0}
