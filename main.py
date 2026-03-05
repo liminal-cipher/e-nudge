@@ -96,43 +96,30 @@ async def analyze_image_ai(image_bytes: bytes):
         return {"label": "no_image", "probability": 0.0}
     
     try:
-        headers = {
-            "Prediction-Key": CUSTOM_VISION_KEY, 
-            "Content-Type": "application/octet-stream"
-        }
-        
-        # AsyncClient를 컨텍스트 매니저로 사용하여 세션을 안전하게 종료
+        headers = {"Prediction-Key": CUSTOM_VISION_KEY, "Content-Type": "application/octet-stream"}
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                CUSTOM_VISION_URL, 
-                content=image_bytes, 
-                headers=headers, 
-                timeout=10.0
-            )
+            response = await client.post(CUSTOM_VISION_URL, content=image_bytes, headers=headers, timeout=10.0)
             
         if response.status_code == 200:
             result = response.json()
             predictions = result.get('predictions', [])
             
             if predictions:
-                # 가장 확률이 높은 예측치를 안전하게 추출
+                # 가장 확률이 높은 결과 하나만 가져옴
                 top = max(predictions, key=lambda x: x['probability'])
                 prob = float(top['probability'])
                 
-                # 임계값(0.5) 처리
-                if prob < 0.2:
-                    return {"label": "neutral", "probability": prob}
-                
-                return {"label": top['tagName'], "probability": prob}
+                # [수정] 90% 이상일 때만 'hate', 아니면 무조건 'none'
+                # tagName이 무엇이든 '불쾌한 이미지' 모델이므로 확률만 체크
+                if prob >= 0.9:
+                    return {"label": "hate", "probability": prob}
+                else:
+                    return {"label": "none", "probability": prob}
             
-        return {"label": "unknown", "probability": 0.0}
-
-    except httpx.TimeoutException:
-        print("⚠️ [IMAGE AI] API 호출 타임아웃 발생")
-        return {"label": "timeout_error", "probability": 0.0}
+        return {"label": "none", "probability": 0.0}
     except Exception as e:
-        print(f"❌ [IMAGE AI] 예외 발생: {e}")
-        return {"label": "error", "probability": 0.0}
+        print(f"❌ [IMAGE AI] 예외: {e}")
+        return {"label": "none", "probability": 0.0}
 
 async def upload_image_to_blob(contents: bytes, filename: str, content_type: str):
     try:
