@@ -92,21 +92,44 @@ async def analyze_text_ai(text: str):
         return {"label": "error", "score": 0.0}
 
 async def analyze_image_ai(image_bytes: bytes):
-    if not image_bytes: return {"label": "no_image", "probability": 0.0}
+    if not image_bytes:
+        return {"label": "no_image", "probability": 0.0}
+    
     try:
-        headers = {"Prediction-Key": CUSTOM_VISION_KEY, "Content-Type": "application/octet-stream"}
+        headers = {
+            "Prediction-Key": CUSTOM_VISION_KEY, 
+            "Content-Type": "application/octet-stream"
+        }
+        
+        # AsyncClient를 컨텍스트 매니저로 사용하여 세션을 안전하게 종료
         async with httpx.AsyncClient() as client:
-            response = await client.post(CUSTOM_VISION_URL, content=image_bytes, headers=headers, timeout=10.0)
+            response = await client.post(
+                CUSTOM_VISION_URL, 
+                content=image_bytes, 
+                headers=headers, 
+                timeout=10.0
+            )
             
         if response.status_code == 200:
             result = response.json()
             predictions = result.get('predictions', [])
+            
             if predictions:
+                # 가장 확률이 높은 예측치를 안전하게 추출
                 top = max(predictions, key=lambda x: x['probability'])
-                print(f"📸 [IMAGE AI] 분석 완료: {top['tagName']} ({top['probability']:.2%})")
-                return {"label": top['tagName'], "probability": float(top['probability'])}
-        
+                prob = float(top['probability'])
+                
+                # 임계값(0.5) 처리
+                if prob < 0.5:
+                    return {"label": "neutral", "probability": prob}
+                
+                return {"label": top['tagName'], "probability": prob}
+            
         return {"label": "unknown", "probability": 0.0}
+
+    except httpx.TimeoutException:
+        print("⚠️ [IMAGE AI] API 호출 타임아웃 발생")
+        return {"label": "timeout_error", "probability": 0.0}
     except Exception as e:
         print(f"❌ [IMAGE AI] 예외 발생: {e}")
         return {"label": "error", "probability": 0.0}
@@ -142,7 +165,7 @@ async def create_comment(
         if content and content.strip():
             text_ai_res = await analyze_text_ai(content)
 
-        # 2. 이미지 처리
+        # 2. 이미지 처리 (분석 & 업로드 병렬 실행)
         if image and image.filename and len(image.filename.strip()) > 0:
             image_data = await image.read()
             if image_data:
@@ -150,35 +173,45 @@ async def create_comment(
                 upload_task = upload_image_to_blob(image_data, image.filename, image.content_type)
                 image_ai_res, uploaded_url = await asyncio.gather(image_task, upload_task)
 
-        # 3. 최종 점수 및 라벨 판별
-        text_score = text_ai_res["score"]
-        img_label = image_ai_res["label"].lower()
-        img_prob = image_ai_res["probability"]
+        # --- [추가 및 수정 포인트] 라벨 가중치 판별 로직 ---
         
-        SAFE_TAGS = ["clean", "no_image", "error", "unknown", "neutral"]
-        image_score = img_prob if img_label not in SAFE_TAGS else 0.0
-        final_score = max(text_score, image_score)
+        # 라벨별 점수 매핑 (Hate가 가장 높음)
+        # 이미지 결과의 clean, neutral 등은 모두 0점으로 처리
+        label_weights = {"hate": 2, "offensive": 1, "none": 0, "clean": 0, "neutral": 0, "unknown": 0, "error": 0}
+        
+        text_label = text_ai_res.get("label", "none").lower()
+        img_label = image_ai_res.get("label", "none").lower()
 
-        if final_score >= 0.55:
-            final_label = "hate"
-        elif final_score >= 0.44:
-            final_label = "offensive"
-        else:
-            final_label = "none"
+        # 각 분석 결과의 가중치 추출
+        text_weight = label_weights.get(text_label, 0)
+        img_weight = label_weights.get(img_label, 0)
 
-        # --- [수정 포인트] Hate(위험) 등급이면 DB 저장 자체를 하지 않음 ---
-        if final_label == "hate":
-            print(f"🚫 [차단] 유해성 검사 결과 'hate' 감지 (Score: {final_score})")
+        # [핵심] 둘 중 더 높은 등급을 최종 등급으로 선택
+        final_weight = max(text_weight, img_weight)
+
+        # 숫자를 다시 라벨로 변환
+        weight_to_label = {2: "hate", 1: "offensive", 0: "none"}
+        final_label = weight_to_label[final_weight]
+        
+        # 기존 score 값은 DB 기록용으로 유지 (텍스트/이미지 중 높은 점수 채택)
+        final_score = max(text_ai_res["score"], image_ai_res["probability"])
+
+        # 3. Hate(2점) 등급이면 DB 저장 없이 즉시 차단
+        if final_weight == 2:
+            print(f"🚫 [차단] 유해 콘텐츠 감지 (Text: {text_label}, Image: {img_label})")
             return JSONResponse(
-                status_code=400, # 잘못된 요청(유해 콘텐츠)으로 처리
+                status_code=400,
                 content={
                     "status": "blocked",
                     "message": "유해한 내용이 포함되어 등록이 차단되었습니다.",
-                    "ai_result": {"final": {"label": final_label, "score": final_score}}
+                    "ai_result": {
+                        "final": {"label": final_label, "score": final_score},
+                        "detail": {"text": text_label, "image": img_label}
+                    }
                 }
             )
 
-        # 4. 'none' 또는 'offensive'일 때만 DB 저장 진행
+        # 4. 'none'(0점) 또는 'offensive'(1점)일 때만 DB 저장 진행
         new_comment = models.Comment(
             post_id=post_id,
             user_id=8, 
@@ -208,7 +241,6 @@ async def create_comment(
         if db: db.rollback()
         print(f"🔥 에러 발생: {e}")
         return JSONResponse(status_code=500, content={"detail": str(e)})
-
 @app.post("/posts")
 async def create_post(title: str = Form("제목 없음"), content: str = Form(...), db: Session = Depends(get_db)):
     try:
