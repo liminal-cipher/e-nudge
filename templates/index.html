@@ -16,6 +16,7 @@
             --border: #eeeeee;
             --safe: #28a745;
             --danger: #ff5a5a;
+            --celeb: #ffcf00;
         }
 
         body { font-family: 'Pretendard', sans-serif; background-color: var(--bg); margin: 0; color: var(--text-main); }
@@ -51,7 +52,7 @@
         /* 메인 영역 레이아웃 */
         .main-container { margin-left: 70px; flex: 1; display: flex; flex-direction: column; align-items: center; padding: 18px 20px; }
         .main-content-wrap { width: 985px; max-width: 100%; display: flex; flex-direction: column; }
-        .main-inner { display: flex; justify-content: center; gap: 25px; margin-top: 32px; } /* gap 추가 */
+        .main-inner { display: flex; justify-content: center; gap: 25px; margin-top: 32px; }
         .content-area { width: 680px; }
 
         /* 아티스트 헤더 */
@@ -78,7 +79,9 @@
         .btn-submit-post.active { background: var(--primary); color: white; }
 
         /* 게시글 카드 */
-        .post-card { background: var(--white); border: 1px solid var(--border); border-radius: 15px; margin-bottom: 20px; padding: 25px; }
+        .post-card { background: var(--white); border: 1px solid var(--border); border-radius: 15px; margin-bottom: 20px; padding: 25px; position: relative; }
+        .post-card.celebrity-post { border: 2px solid var(--primary); }
+        .celeb-badge { background: var(--primary); color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
         .post-body { font-size: 16px; line-height: 1.6; margin-bottom: 20px; }
 
         /* 댓글 스타일 */
@@ -98,7 +101,7 @@
         .btn-comment-submit { background: none; border: none; color: #adb5bd; font-weight: 700; cursor: pointer; }
         .btn-comment-submit.active { color: var(--primary); }
 
-        /* 우측 사이드바 위젯 (복구 핵심) */
+        /* 우측 사이드바 위젯 */
         .right-sidebar { width: 280px; position: sticky; top: 80px; align-self: flex-start; }
         .widget { background: var(--white); border-radius: 15px; border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; }
         .widget-title { font-weight: 700; font-size: 14px; margin-bottom: 15px; color: #555; }
@@ -183,10 +186,6 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="widget">
-                            <div class="widget-title">오늘의 아티스트</div>
-                            <div style="font-size:13px; color:#666; line-height:1.5;">NewJeans의 새로운 소식을 확인하고 따뜻한 댓글을 남겨보세요.</div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -206,7 +205,16 @@
             try {
                 const response = await fetch("/posts");
                 if (response.ok) {
-                    const posts = await response.json();
+                    let posts = await response.json();
+                    
+                    // [핵심 추가] 유저 role이 'celebrity'인 글을 최상단으로 정렬
+                    posts.sort((a, b) => {
+                        // role이 'celebrity'인 글을 최상단으로
+                        if (a.role === 'celebrity' && b.role !== 'celebrity') return -1;
+                        if (a.role !== 'celebrity' && b.role === 'celebrity') return 1;
+                        return 0;
+                    });
+
                     const feed = document.getElementById('feedContent');
                     feed.innerHTML = ''; 
 
@@ -224,7 +232,6 @@
                         }
                     });
 
-                    // 우측 통계 업데이트
                     document.getElementById('totalPosts').innerText = posts.length;
                     document.getElementById('statSafe').innerText = safeCount;
                     document.getElementById('statWarning').innerText = warningCount;
@@ -237,14 +244,17 @@
             const feed = document.getElementById('feedContent');
             const postId = post.id;
             const userName = post.username || "익명";
-            
+            const isCeleb = post.role === 'celebrity'; 
             const postHtml = `
-                <div class="post-card" id="post-${postId}">
+                <div class="post-card ${isCeleb ? 'celebrity-post' : ''}" id="post-${postId}">
                     <div style="display:flex; align-items:center; margin-bottom:15px;">
-                        <div class="nav-icon" style="margin:0; width:40px; height:40px; background:var(--primary); color:white; border-radius:50%;">${userName.substring(0,1).toUpperCase()}</div>
+                        <div class="nav-icon" style="margin:0; width:40px; height:40px; background:${isCeleb ? 'var(--primary)' : '#ddd'}; color:white; border-radius:50%;">${userName.substring(0,1).toUpperCase()}</div>
                         <div style="margin-left:12px;">
-                            <div style="font-weight:700;">${userName}</div>
-                            <div style="color:#888; font-size:12px;">방금 전</div>
+                            <div style="font-weight:700;">
+                                ${userName} 
+                                ${isCeleb ? '<span class="celeb-badge">Artist</span>' : ''} 
+                            </div>
+                            <div style="color:#888; font-size:12px;">${isCeleb ? '공지' : '방금 전'}</div>
                         </div>
                     </div>
                     <div class="post-body">${post.body}</div> 
