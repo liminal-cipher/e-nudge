@@ -142,54 +142,62 @@ async def create_comment(
         if content and content.strip():
             text_ai_res = await analyze_text_ai(content)
 
-        # 2. 이미지 처리 (파일명이 유효할 때만 실행)
+        # 2. 이미지 처리 (분석 & 업로드 병렬 실행)
         if image and image.filename and len(image.filename.strip()) > 0:
             image_data = await image.read()
             if image_data:
-                # 분석과 업로드를 병렬로 실행하여 속도 향상
                 image_task = analyze_image_ai(image_data)
                 upload_task = upload_image_to_blob(image_data, image.filename, image.content_type)
                 image_ai_res, uploaded_url = await asyncio.gather(image_task, upload_task)
 
-        # 3. 최종 판별 전략
-        # 텍스트 라벨을 기본으로 하되, 이미지가 유해할 경우 이미지 결과를 우선함
-        final_label = text_ai_res["label"]
+        # 3. 최종 점수 및 라벨 판별 (원래 설정하신 임계값 0.55 / 0.44 적용)
+        text_score = text_ai_res["score"]
         img_label = image_ai_res["label"].lower()
+        img_prob = image_ai_res["probability"]
         
-        # 이미지 분석 결과가 위험군이고 확률이 60% 이상인 경우
-        if img_label not in ["clean", "no_image", "error", "unknown"] and image_ai_res["probability"] > 0.6:
-            if final_label in ["none", "error"]:
-                final_label = f"unsafe_image_{img_label}"
-            else:
-                # 텍스트와 이미지 모두 문제가 있을 경우 조합 (선택 사항)
-                final_label = f"{final_label}_&_unsafe_image"
+        # 이미지 유해성 판단 (SAFE_TAGS 외에는 점수 반영)
+        SAFE_TAGS = ["clean", "no_image", "error", "unknown", "neutral"]
+        image_score = img_prob if img_label not in SAFE_TAGS else 0.0
 
-        # 4. DB 저장
+        # 둘 중 더 높은 독성 점수를 최종 점수로 채택
+        final_score = max(text_score, image_score)
+
+        if final_score >= 0.55:
+            final_label = "hate"
+        elif final_score >= 0.44:
+            final_label = "offensive"
+        else:
+            final_label = "none"
+
+        # 4. [중요] Comment DB 모델에 저장
         new_comment = models.Comment(
             post_id=post_id,
-            user_id=8,  # 현재 샘플용 고정 ID
-            content=content if content else "",
-            image_url=uploaded_url,
-            toxicity_score=text_ai_res["score"],
-            label=final_label
+            user_id=8,  # 실제 서비스 시에는 인증된 사용자 ID 세션값 사용
+            content=content if content else "", # NVARCHAR 대응
+            image_url=uploaded_url,             # NVARCHAR 대응
+            toxicity_score=float(final_score),  # Float 대응
+            label=final_label                   # NVARCHAR(100) 대응
         )
         
         db.add(new_comment)
         db.commit()
         db.refresh(new_comment)
         
+        print(f"✅ DB 저장 완료: Comment ID {new_comment.id} (Score: {final_score}, Label: {final_label})")
+
         return {
             "status": "success", 
-            "id": new_comment.id, 
+            "id": new_comment.id,
             "ai_result": {
                 "text": text_ai_res, 
-                "image": image_ai_res
+                "image": image_ai_res,
+                "final": {"label": final_label, "score": final_score}
             }
         }
 
     except Exception as e:
         if db: db.rollback()
-        print(f"🔥 서버 에러: {e}")
+        print(f"🔥 DB 저장 중 에러 발생: {e}")
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 @app.post("/posts")
