@@ -56,110 +56,60 @@
 
         /* 아티스트 페이지 상단 */
         .artist-page-header {
-            width: 100%; box-sizing: border-box;
-            height: 64px; overflow: visible;
-            background: var(--white); border: 1px solid var(--border); border-radius: 15px;
-            margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-            display: flex; align-items: flex-end; gap: 20px; padding: 0 24px 0 24px;
+            width: 100%; box-sizing: border-box; height: 64px; background: var(--white); 
+            border: 1px solid var(--border); border-radius: 15px; margin-bottom: 20px; 
+            display: flex; align-items: flex-end; gap: 20px; padding: 0 24px;
         }
         .artist-page-header .artist-avatar-wrap {
             width: 80px; height: 80px; border-radius: 50%; background: #fff;
-            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-            margin-bottom: -40px;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-bottom: -40px;
         }
         .artist-page-header .artist-avatar {
             width: 72px; height: 72px; border-radius: 50%; background: #e9ecef;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px; font-weight: 800; color: var(--text-sub);
+            display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: var(--text-sub);
         }
-        .artist-page-header .artist-name {
-            font-weight: 800; font-size: 20px; color: var(--text-main);
-            margin-bottom: -36px;
-        }
-
-        /* 게시글 작성 박스 */
-        .post-write-card {
-            background: var(--white); border: 1px solid var(--border); border-radius: 15px;
-            padding: 20px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-        }
-        .write-header { display: flex; align-items: center; margin-bottom: 15px; }
-        .write-header .user-label { font-weight: 700; font-size: 14px; margin-left: 10px; }
-        .post-write-card textarea {
-            width: 100%; border: none; outline: none; resize: none; font-size: 16px;
-            font-family: inherit; min-height: 80px; color: #333;
-        }
-        .write-footer {
-            display: flex; justify-content: space-between; align-items: center;
-            border-top: 1px solid #f8f9fa; padding-top: 15px; margin-top: 10px;
-        }
-        .write-tools { display: flex; gap: 18px; color: #666; font-size: 19px; }
-        .btn-submit-post {
-            background: #eee; color: #999; border: none; padding: 10px 24px;
-            border-radius: 25px; font-weight: 700; cursor: pointer; transition: 0.3s;
-        }
-        .btn-submit-post.active { background: var(--primary); color: white; }
+        .artist-page-header .artist-name { font-weight: 800; font-size: 20px; color: var(--text-main); margin-bottom: -36px; }
 
         /* 게시글 카드 */
-        .post-card { background: var(--white); border: 1px solid var(--border); border-radius: 15px; margin-bottom: 20px; padding: 25px; animation: slideIn 0.4s ease-out; }
-        .post-card-header { display: flex; align-items: center; margin-bottom: 15px; }
-        .artist-badge-wrapper { display: flex; align-items: center; }
-        .artist-tag { background: var(--primary); color: white; font-size: 10px; padding: 2px 7px; border-radius: 10px; margin-left: 6px; font-weight: 700; }
-        .post-time { color: var(--text-sub); font-size: 12px; margin-top: 2px; }
-        .post-body { font-size: 16px; line-height: 1.6; margin-bottom: 20px; white-space: pre-wrap; }
-        .post-actions { display: flex; gap: 20px; color: var(--text-sub); font-size: 14px; padding-bottom: 15px; border-bottom: 1px solid #f8f9fa; }
+        .post-write-card { background: var(--white); border: 1px solid var(--border); border-radius: 15px; padding: 20px; margin-bottom: 30px; }
+        .post-write-card textarea { width: 100%; border: none; outline: none; resize: none; font-size: 16px; min-height: 80px; }
+        .write-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f8f9fa; padding-top: 15px; }
+        .btn-submit-post { background: #eee; color: #999; border: none; padding: 10px 24px; border-radius: 25px; font-weight: 700; cursor: pointer; }
+        .btn-submit-post.active { background: var(--primary); color: white; }
 
-        /* 댓글 스타일 */
-        .comment-item { display: flex; margin-top: 15px; animation: fadeIn 0.3s; align-items: flex-start; }
+        .post-card { background: var(--white); border: 1px solid var(--border); border-radius: 15px; margin-bottom: 20px; padding: 25px; }
+        .post-body { font-size: 16px; line-height: 1.6; margin-bottom: 20px; }
+        
+        /* 댓글 영역 */
+        .comment-item { display: flex; margin-top: 15px; align-items: flex-start; }
         .comment-content { margin-left: 10px; background: #f8f9fa; padding: 10px 14px; border-radius: 12px; flex: 1; }
         .comment-user-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-        .comment-user { font-weight: 700; font-size: 13px; }
-        .ai-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; color: white; font-weight: 600; text-transform: uppercase; }
-        .comment-text { font-size: 14px; line-height: 1.4; color: #444; }
-        .comment-attached-img { width: 150px; height: 150px; object-fit: cover; border-radius: 8px; margin-top: 10px; display: block; border: 1px solid #ddd; cursor: zoom-in; }
+        .ai-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; color: white; font-weight: 600; }
+        .comment-attached-img { width: 100%; max-width: 250px; border-radius: 8px; margin-top: 10px; display: block; border: 1px solid #ddd; }
 
         /* 댓글 입력창 */
-        .comment-input-wrap { background: #f1f3f5; border-radius: 12px; padding: 15px; margin-top: 20px; transition: transform 0.1s; }
-        .comment-input-wrap textarea { width: 100%; background: transparent; border: none; outline: none; resize: none; font-size: 14px; font-family: inherit; min-height: 40px; }
+        .comment-input-wrap { background: #f1f3f5; border-radius: 12px; padding: 15px; margin-top: 20px; }
+        .comment-input-wrap textarea { width: 100%; background: transparent; border: none; outline: none; resize: none; font-size: 14px; min-height: 40px; }
         .comment-btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-        .btn-comment-submit { background: none; border: none; color: #adb5bd; font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.2s; padding: 5px 10px; }
+        .btn-comment-submit { background: none; border: none; color: #adb5bd; font-weight: 700; cursor: pointer; }
         .btn-comment-submit.active { color: var(--primary); }
 
-        /* 우측 위젯 */
+        /* 우측 사이드바 */
         .right-sidebar { width: 280px; position: sticky; top: 80px; align-self: flex-start; }
         .widget { background: var(--white); border-radius: 15px; border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; }
-        .widget-title { font-weight: 700; font-size: 14px; margin-bottom: 15px; display: flex; align-items: center; }
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .stat-box { background: #f8f9fa; border-radius: 10px; padding: 15px 5px; text-align: center; }
-        .stat-num { font-size: 20px; font-weight: 800; margin-bottom: 3px; }
+        .stat-num { font-size: 20px; font-weight: 800; }
 
-        .widget-demo-card {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 16px; background: linear-gradient(135deg, #e8faf9 0%, #f0fdfc 100%);
-            border-radius: 12px; border: 1px solid rgba(18, 211, 207, 0.3);
-            cursor: pointer; transition: 0.25s; text-decoration: none; color: var(--text-main);
-        }
-        .widget-demo-card:hover { background: linear-gradient(135deg, #d4f5f4 0%, #e0faf9 100%); }
-
-        .guide-list { list-style: none; padding: 0; margin: 0; font-size: 13px; color: #555; line-height: 1.7; }
-        .guide-list li { padding-left: 18px; position: relative; margin-bottom: 8px; }
-        .guide-list li::before { content: "•"; position: absolute; left: 0; color: var(--primary); font-weight: 700; }
-
-        /* 넛지 팝업 */
+        /* 팝업 및 효과 */
         .nudge-popup {
-            display: none; position: fixed; z-index: 10001; left: 50%; top: 50%;
-            transform: translate(-50%, -50%); padding: 18px 24px;
-            background: #dc3545; color: #fff; border-radius: 14px;
-            font-weight: 700; font-size: 15px; text-align: center;
+            display: none; position: fixed; z-index: 10001; left: 50%; top: 50%; transform: translate(-50%, -50%);
+            padding: 18px 24px; background: #dc3545; color: #fff; border-radius: 14px; font-weight: 700;
             box-shadow: 0 8px 24px rgba(220, 53, 69, 0.45);
-            animation: nudgePop 0.3s ease-out;
         }
         .nudge-popup.show { display: block; }
-
-        @keyframes nudgePop { from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); } 20%, 40%, 60%, 80% { transform: translateX(6px); } }
         .shake { animation: shake 0.6s ease-in-out; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); } 20%, 40%, 60%, 80% { transform: translateX(6px); } }
     </style>
 </head>
 <body>
@@ -186,9 +136,7 @@
         <div class="main-container">
             <div class="main-content-wrap">
                 <header class="artist-page-header">
-                    <div class="artist-avatar-wrap">
-                        <div class="artist-avatar">NJ</div>
-                    </div>
+                    <div class="artist-avatar-wrap"><div class="artist-avatar">NJ</div></div>
                     <div class="artist-name">NewJeans</div>
                 </header>
 
@@ -197,7 +145,7 @@
                         <div class="post-write-card">
                             <div class="write-header">
                                 <div class="nav-icon" style="width:35px; height:35px; margin:0; background:var(--primary); color:white;">ME</div>
-                                <span class="user-label">나의 소식 남기기</span>
+                                <span class="user-label" style="margin-left: 10px; font-weight: 700;">나의 소식 남기기</span>
                             </div>
                             <textarea id="mainPostInput" placeholder="오늘 어떤 일이 있었나요?" oninput="checkPostLength()"></textarea>
                             <div class="write-footer">
@@ -210,29 +158,12 @@
 
                     <div class="right-sidebar">
                         <div class="widget">
-                            <div class="widget-title"><i class="fa-solid fa-play-circle" style="color:var(--primary); margin-right:8px;"></i> 실시간 데모</div>
-                            <a href="#" class="widget-demo-card" onclick="location.reload(); return false;">
-                                <div><div class="demo-text">실시간 데모 보기</div><div class="demo-sub">AI 댓글 분석 체험</div></div>
-                                <i class="fa-solid fa-arrow-right"></i>
-                            </a>
-                        </div>
-
-                        <div class="widget">
-                            <div class="widget-title"><i class="fa-solid fa-chart-simple" style="color:var(--primary); margin-right:8px;"></i> AI 분석 통계</div>
                             <div class="stat-grid">
-                                <div class="stat-box"><div class="stat-num" id="totalPosts" style="color:var(--primary)">0</div><div style="font-size:11px; color:var(--text-sub);">게시글</div></div>
-                                <div class="stat-box"><div class="stat-num" id="statWarning" style="color:#ffcc00">0</div><div style="font-size:11px; color:var(--text-sub);">주의</div></div>
-                                <div class="stat-box"><div class="stat-num" id="statDanger" style="color:#ff5a5a">0</div><div style="font-size:11px; color:var(--text-sub);">위험</div></div>
-                                <div class="stat-box"><div class="stat-num" id="statSafe" style="color:#28a745">0</div><div style="font-size:11px; color:var(--text-sub);">안전</div></div>
+                                <div class="stat-box"><div class="stat-num" id="totalPosts" style="color:var(--primary)">0</div><div style="font-size:11px;">게시글</div></div>
+                                <div class="stat-box"><div class="stat-num" id="statWarning" style="color:#ffcc00">0</div><div style="font-size:11px;">주의</div></div>
+                                <div class="stat-box"><div class="stat-num" id="statDanger" style="color:#ff5a5a">0</div><div style="font-size:11px;">위험</div></div>
+                                <div class="stat-box"><div class="stat-num" id="statSafe" style="color:#28a745">0</div><div style="font-size:11px;">안전</div></div>
                             </div>
-                        </div>
-
-                        <div class="widget">
-                            <div class="widget-title"><i class="fa-solid fa-circle-info" style="color:var(--primary); margin-right:8px;"></i> 커뮤니티 안내</div>
-                            <ul class="guide-list">
-                                <li>따뜻하고 존중하는 댓글을 남겨주세요.</li>
-                                <li>AI가 유해·위험 표현을 실시간 감지합니다.</li>
-                            </ul>
                         </div>
                     </div>
                 </div>
@@ -240,7 +171,7 @@
         </div>
     </div>
 
-    <div id="nudgePopup" class="nudge-popup">🚫 명백한 욕설/비방이 감지되었습니다. 게시가 차단됩니다.</div>
+    <div id="nudgePopup" class="nudge-popup">🚫 부적절한 내용이 감지되어 게시가 차단되었습니다.</div>
 
     <script>
         window.addEventListener('DOMContentLoaded', loadFeed);
@@ -259,7 +190,7 @@
                         renderPostToFeed(post);
                         if (post.comments) {
                             post.comments.forEach(c => {
-                                const label = c.label.toLowerCase();
+                                const label = (c.label || 'none').toLowerCase();
                                 if (label === 'none' || label === 'safe' || label.includes('clean')) safeCount++;
                                 else if (label === 'hate') dangerCount++;
                                 else warningCount++;
@@ -282,34 +213,31 @@
             
             const postHtml = `
                 <div class="post-card" id="post-${postId}">
-                    <div class="post-card-header">
-                        <div class="nav-icon" style="margin:0; width:40px; height:40px; background:var(--primary); color:white; border-radius:50%; font-size:16px;">
-                            ${userName.substring(0,1).toUpperCase()}
-                        </div>
+                    <div style="display:flex; align-items:center; margin-bottom:15px;">
+                        <div class="nav-icon" style="margin:0; width:40px; height:40px; background:var(--primary); color:white; border-radius:50%;">${userName.substring(0,1).toUpperCase()}</div>
                         <div style="margin-left:12px;">
-                            <div class="artist-badge-wrapper" style="font-weight:700; font-size:15px;">${userName} ${post.role === 'celebrity' ? '<span class="artist-tag">ARTIST</span>' : ''}</div>
-                            <div class="post-time">방금 전</div>
+                            <div style="font-weight:700;">${userName}</div>
+                            <div style="color:#888; font-size:12px;">방금 전</div>
                         </div>
                     </div>
                     <div class="post-body">${post.body}</div> 
-                    <div class="post-actions">
-                        <span><i class="fa-regular fa-heart"></i> 0</span>
-                        <span><i class="fa-regular fa-comment"></i> ${post.comments ? post.comments.length : 0}</span>
+                    <div class="post-actions" style="color:#888; font-size:14px; padding-bottom:15px; border-bottom:1px solid #f8f9fa;">
+                        <i class="fa-regular fa-comment"></i> ${post.comments ? post.comments.length : 0}
                     </div>
                     
                     <div class="comment-list">
                         ${post.comments ? post.comments.map(c => {
                             const isUnsafe = !(c.label === 'none' || c.label === 'safe' || c.label.includes('clean'));
-                            const badgeBg = isUnsafe ? 'var(--danger)' : 'var(--safe)';
                             return `
                                 <div class="comment-item">
                                     <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd; border-radius:50%; margin-right:8px; flex-shrink:0;">${(c.username || '익').substring(0,1)}</div>
                                     <div class="comment-content">
                                         <div class="comment-user-row">
                                             <span class="comment-user">${c.username || '익명'}</span>
-                                            <span class="ai-badge" style="background:${badgeBg}">${c.label}</span>
+                                            <span class="ai-badge" style="background:${isUnsafe ? 'var(--danger)' : 'var(--safe)'}">${c.label}</span>
                                         </div>
                                         <div class="comment-text">${c.content}</div>
+                                        ${c.image_url ? `<img src="${c.image_url}" class="comment-attached-img">` : ''}
                                     </div>
                                 </div>`;
                         }).join('') : ''}
@@ -317,13 +245,63 @@
 
                     <div class="comment-input-wrap">
                         <textarea id="comment-input-${postId}" placeholder="따뜻한 댓글을 남겨주세요..." oninput="checkCommentLength(${postId})"></textarea>
+                        
+                        <input type="file" id="comment-file-${postId}" style="display:none;" accept="image/*" onchange="updateImageIcon(${postId})">
+                        
                         <div class="comment-btn-row">
-                            <i class="fa-regular fa-image" style="color:#888; cursor:pointer;"></i>
+                            <i class="fa-regular fa-image" id="comment-icon-${postId}" style="color:#888; cursor:pointer; font-size:18px;" onclick="document.getElementById('comment-file-${postId}').click()"></i>
                             <button id="comment-btn-${postId}" class="btn-comment-submit" onclick="submitComment(${postId})">등록</button>
                         </div>
                     </div>
                 </div>`;
             feed.insertAdjacentHTML('beforeend', postHtml);
+        }
+
+        async function submitComment(postId) {
+            const textInput = document.getElementById(`comment-input-${postId}`);
+            const fileInput = document.getElementById(`comment-file-${postId}`);
+            
+            if (!textInput.value.trim() && (!fileInput.files || !fileInput.files[0])) return;
+
+            const btn = document.getElementById(`comment-btn-${postId}`);
+            const wrap = document.querySelector(`#post-${postId} .comment-input-wrap`);
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('content', textInput.value.trim());
+            formData.append('post_id', postId);
+            if (fileInput.files[0]) {
+                formData.append('image', fileInput.files[0]);
+            }
+
+            try {
+                const response = await fetch("/comments", { method: "POST", body: formData });
+                if (response.ok) {
+                    const result = await response.json();
+                    const textLabel = result.ai_result?.text?.label || 'none';
+                    const imgLabel = result.ai_result?.image?.label || 'clean';
+
+                    // 텍스트 혹은 이미지 중 하나라도 유해하면 넛지 발생
+                    if (textLabel === 'hate' || textLabel === 'offensive' || (imgLabel !== 'clean' && result.ai_result?.image?.probability > 0.6)) {
+                        const popup = document.getElementById('nudgePopup');
+                        popup.innerText = textLabel === 'hate' ? "🚫 부적절한 언어가 감지되었습니다." : "🚫 부적절한 이미지가 감지되었습니다.";
+                        popup.classList.add('show');
+                        wrap.classList.add('shake');
+                        setTimeout(() => { popup.classList.remove('show'); wrap.classList.remove('shake'); }, 2500);
+                    } else {
+                        textInput.value = '';
+                        fileInput.value = '';
+                        loadFeed();
+                    }
+                }
+            } catch (err) { console.error(err); }
+            finally { btn.disabled = false; }
+        }
+
+        function updateImageIcon(postId) {
+            const fileInput = document.getElementById(`comment-file-${postId}`);
+            const icon = document.getElementById(`comment-icon-${postId}`);
+            icon.style.color = (fileInput.files && fileInput.files[0]) ? 'var(--primary)' : '#888';
         }
 
         async function submitNewPost() {
@@ -333,39 +311,6 @@
             formData.append('content', input.value.trim());
             const response = await fetch("/posts", { method: "POST", body: formData });
             if (response.ok) { input.value = ''; loadFeed(); }
-        }
-
-        async function submitComment(postId) {
-            const textInput = document.getElementById(`comment-input-${postId}`);
-            if (!textInput.value.trim()) return;
-
-            const btn = document.getElementById(`comment-btn-${postId}`);
-            const wrap = document.querySelector(`#post-${postId} .comment-input-wrap`);
-            btn.disabled = true;
-
-            const formData = new FormData();
-            formData.append('content', textInput.value.trim());
-            formData.append('post_id', postId);
-
-            try {
-                const response = await fetch("/comments", { method: "POST", body: formData });
-                if (response.ok) {
-                    const result = await response.json();
-                    const label = result.ai_result?.text?.label || 'none';
-                    if (label === 'hate' || label === 'offensive') {
-                        document.getElementById('nudgePopup').classList.add('show');
-                        wrap.classList.add('shake');
-                        setTimeout(() => { 
-                            document.getElementById('nudgePopup').classList.remove('show');
-                            wrap.classList.remove('shake');
-                        }, 2500);
-                    } else {
-                        textInput.value = '';
-                        loadFeed();
-                    }
-                }
-            } catch (err) { console.error(err); }
-            finally { btn.disabled = false; }
         }
 
         function checkPostLength() {

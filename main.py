@@ -155,7 +155,7 @@ async def create_comment(
         # 4. DB 저장 (user_id는 현재 샘플로 6번 사용)
         new_comment = models.Comment(
             post_id=post_id,
-            user_id=6,
+            user_id=8,
             content=content if content else "",
             image_url=uploaded_url,
             toxicity_score=text_ai_res["score"],
