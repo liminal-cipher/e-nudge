@@ -220,35 +220,31 @@
             document.getElementById('statDanger').innerText = danger;
         }
 
+        // admin.html의 renderList() 함수 부분 수정 및 추가
+
         function renderList() {
             const listEl = document.getElementById('adminList');
-            listEl.innerHTML = '';
+            listEl.innerHTML = ''; // 하드코딩된 더미 데이터 삭제를 위해 초기화
 
             let commentsToDisplay = [];
-            
-            // 모든 포스트에서 댓글 추출
             allPosts.forEach(post => {
                 if (post.comments) {
                     post.comments.forEach(c => {
-                        commentsToDisplay.push({
-                            ...c,
-                            parentPostId: post.id
-                        });
+                        commentsToDisplay.push({ ...c, parentPostId: post.id });
                     });
                 }
             });
 
-            // 필터링: 'warning' 탭일 때는 유해한 댓글만, 'all'일 때는 전체
             const filtered = currentTab === 'warning' 
                 ? commentsToDisplay.filter(c => !(['none', 'safe'].includes(c.label.toLowerCase()) || c.label.includes('clean')))
                 : commentsToDisplay;
 
             if (filtered.length === 0) {
-                listEl.innerHTML = `<li class="admin-list-item" style="justify-content:center; color:#999;">표시할 데이터가 없습니다.</li>`;
+                listEl.innerHTML = `<li class="admin-list-item" style="justify-content:center; color:#999; padding:40px;">표시할 데이터가 없습니다.</li>`;
                 return;
             }
 
-            filtered.reverse().forEach(item => { // 최신순
+            filtered.reverse().forEach(item => {
                 const label = (item.label || 'none').toLowerCase();
                 let badgeClass = 'safe';
                 let labelText = '안전';
@@ -264,14 +260,36 @@
                 const li = document.createElement('li');
                 li.className = 'admin-list-item';
                 li.innerHTML = `
-                    <div>
+                    <div style="flex: 1;">
                         <div class="content">${item.content}</div>
-                        <div class="meta">게시글 #${item.parentPostId} · ${item.username || '익명'} · 방금 전</div>
+                        <div class="meta">게시글 #${item.parentPostId} · ${item.username || '익명'} · ID:${item.id}</div>
                     </div>
-                    <span class="badge ${badgeClass}">${labelText}</span>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span class="badge ${badgeClass}">${labelText}</span>
+                        <button onclick="deleteComment(${item.id})" style="background:none; border:none; color:#ff5a5a; cursor:pointer; font-size:16px;" title="삭제">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
                 `;
                 listEl.appendChild(li);
             });
+        }
+
+        // 삭제 함수 추가
+        async function deleteComment(commentId) {
+            if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
+
+            try {
+                const response = await fetch(`/comments/${commentId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    alert("삭제되었습니다.");
+                    fetchAdminData(); // 데이터 다시 로드 및 화면 갱신
+                } else {
+                    alert("삭제에 실패했습니다.");
+                }
+            } catch (error) {
+                console.error("삭제 요청 오류:", error);
+            }
         }
     </script>
 </body>

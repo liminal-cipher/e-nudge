@@ -215,3 +215,18 @@ async def read_admin(request: Request):
     return templates.TemplateResponse("admin.html", {"request": request})
 
 # 서버 실행 시: uvicorn main:app --reload
+
+# main.py 하단에 추가
+@app.delete("/comments/{comment_id}")
+async def delete_comment(comment_id: int, db: Session = Depends(get_db)):
+    try:
+        comment = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
+        if not comment:
+            raise HTTPException(status_code=404, detail="댓글을 찾을 수 없습니다.")
+        
+        db.delete(comment)
+        db.commit()
+        return {"status": "success", "message": f"댓글 {comment_id}이(가) 삭제되었습니다."}
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(status_code=500, content={"detail": str(e)})
