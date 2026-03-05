@@ -24,11 +24,14 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# 정적 파일 설정 (CSS, JS 등을 static 폴더에 넣을 경우 필요)
+# app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # --- [0. AI 모델 설정값] ---
 CUSTOM_VISION_URL = "https://gdscs-prediction.cognitiveservices.azure.com/customvision/v3.0/Prediction/720991f1-25e4-4d32-968d-0e00abbb1166/classify/iterations/Iteration5/image"
 CUSTOM_VISION_KEY = "***REMOVED***"
 
-# 모델 로드 (경로 확인 필요)
+# 모델 로드
 try:
     lr_model = joblib.load("lr_model.pkl")
     tfidf_vectorizer = joblib.load("tfidf_vectorizer.pkl")
@@ -61,11 +64,14 @@ def clean_text(text):
 
 def tokenize(text):
     if not text: return ""
-    tokens = kiwi.tokenize(text, normalize_coda=True)
-    return ' '.join(t.form for t in tokens if t.tag in KEEP_TAGS)
+    try:
+        tokens = kiwi.tokenize(text, normalize_coda=True)
+        return ' '.join(t.form for t in tokens if t.tag in KEEP_TAGS)
+    except:
+        return ""
 
 async def analyze_text_ai(text: str):
-    if not text: 
+    if not text or not text.strip(): 
         return {"label": "none", "score": 0.0}
     try:
         def predict_sync():
@@ -73,7 +79,6 @@ async def analyze_text_ai(text: str):
             tokenized = tokenize(cleaned)
             if not tokenized: return None
             vector = tfidf_vectorizer.transform([tokenized])
-            # 확률 추출 (none, offensive, hate 순서 가정)
             return lr_model.predict_proba(vector)[0]
 
         probs = await run_in_threadpool(predict_sync)
@@ -137,25 +142,32 @@ async def create_comment(
         if content and content.strip():
             text_ai_res = await analyze_text_ai(content)
 
-        # 2. 이미지 처리
-        if image and image.filename:
+        # 2. 이미지 처리 (파일명이 유효할 때만 실행)
+        if image and image.filename and len(image.filename.strip()) > 0:
             image_data = await image.read()
             if image_data:
+                # 분석과 업로드를 병렬로 실행하여 속도 향상
                 image_task = analyze_image_ai(image_data)
                 upload_task = upload_image_to_blob(image_data, image.filename, image.content_type)
                 image_ai_res, uploaded_url = await asyncio.gather(image_task, upload_task)
 
-        # 3. 최종 판별 (이미지 우선순위 전략)
+        # 3. 최종 판별 전략
+        # 텍스트 라벨을 기본으로 하되, 이미지가 유해할 경우 이미지 결과를 우선함
         final_label = text_ai_res["label"]
         img_label = image_ai_res["label"].lower()
-        if img_label not in ["clean", "no_image", "error", "unknown"]:
-            if image_ai_res["probability"] > 0.6:
+        
+        # 이미지 분석 결과가 위험군이고 확률이 60% 이상인 경우
+        if img_label not in ["clean", "no_image", "error", "unknown"] and image_ai_res["probability"] > 0.6:
+            if final_label in ["none", "error"]:
                 final_label = f"unsafe_image_{img_label}"
+            else:
+                # 텍스트와 이미지 모두 문제가 있을 경우 조합 (선택 사항)
+                final_label = f"{final_label}_&_unsafe_image"
 
-        # 4. DB 저장 (user_id는 현재 샘플로 6번 사용)
+        # 4. DB 저장
         new_comment = models.Comment(
             post_id=post_id,
-            user_id=8,
+            user_id=8,  # 현재 샘플용 고정 ID
             content=content if content else "",
             image_url=uploaded_url,
             toxicity_score=text_ai_res["score"],
@@ -166,10 +178,18 @@ async def create_comment(
         db.commit()
         db.refresh(new_comment)
         
-        return {"status": "success", "id": new_comment.id, "ai_result": {"text": text_ai_res, "image": image_ai_res}}
+        return {
+            "status": "success", 
+            "id": new_comment.id, 
+            "ai_result": {
+                "text": text_ai_res, 
+                "image": image_ai_res
+            }
+        }
 
     except Exception as e:
         if db: db.rollback()
+        print(f"🔥 서버 에러: {e}")
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 @app.post("/posts")
@@ -202,7 +222,7 @@ async def get_posts(db: Session = Depends(get_db)):
         })
     return result
 
-# --- [4. 페이지 렌더링] ---
+# --- [4. 페이지 렌더링 및 삭제 관리] ---
 
 templates = Jinja2Templates(directory="templates")
 
@@ -214,9 +234,6 @@ async def read_main(request: Request):
 async def read_admin(request: Request):
     return templates.TemplateResponse("admin.html", {"request": request})
 
-# 서버 실행 시: uvicorn main:app --reload
-
-# main.py 하단에 추가
 @app.delete("/comments/{comment_id}")
 async def delete_comment(comment_id: int, db: Session = Depends(get_db)):
     try:
