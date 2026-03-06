@@ -192,7 +192,8 @@ async def create_comment(
         final_label = weight_to_label[final_weight]
         
         # 기존 score 값은 DB 기록용으로 유지 (텍스트/이미지 중 높은 점수 채택)
-        final_score = max(text_ai_res["score"], image_ai_res["probability"])
+        raw_score = max(text_ai_res["score"], image_ai_res.get("probability", 0.0))
+        final_score = round(float(raw_score), 2)
 
         # 3. Hate(2점) 등급이면 DB 저장 없이 즉시 차단
         if final_weight == 2:
