@@ -109,25 +109,11 @@
         .image-preview { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
         .preview-remove { position: absolute; top: -5px; right: -5px; background: #333; color: #fff; width: 18px; height: 18px; border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         
-        /* [수정] 아이콘 배치를 위해 relative 추가 */
-        .comment-input-wrap { position: relative; background: #f1f3f5; border-radius: 12px; padding: 15px; margin-top: 20px; transition: transform 0.2s; }
-        .comment-input-wrap textarea { width: 100%; background: transparent; border: none; outline: none; resize: none; font-size: 14px; min-height: 40px; padding-right: 25px; } /* 여백 추가 */
+        .comment-input-wrap { background: #f1f3f5; border-radius: 12px; padding: 15px; margin-top: 20px; transition: transform 0.2s; }
+        .comment-input-wrap textarea { width: 100%; background: transparent; border: none; outline: none; resize: none; font-size: 14px; min-height: 40px; }
         .comment-btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
         .btn-comment-submit { background: none; border: none; color: #adb5bd; font-weight: 700; cursor: pointer; }
         .btn-comment-submit.active { color: var(--primary); }
-
-        /* [추가] 사이렌 아이콘 스타일 */
-        .siren-icon {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            color: var(--danger);
-            font-size: 16px;
-            cursor: pointer;
-            opacity: 0.7;
-            transition: opacity 0.2s;
-        }
-        .siren-icon:hover { opacity: 1; }
 
         /* 우측 사이드바 위젯 */
         .right-sidebar { width: 280px; position: sticky; top: 80px; align-self: flex-start; }
@@ -288,9 +274,11 @@
         
         console.log("현재 유저 동의 상태:", userData.is_agreed);
 
+        // 🔍 핵심 체크: 정확히 'true'가 아닐 때만 실행 (null, undefined, false 방어)
         if (userData.is_agreed !== true) { 
             const userAgreed = confirm("⚠️ [개인정보 수집 및 AI 서비스 이용 동의]\n서비스 품질 개선 및 분석을 위해 데이터 수집에 동의하시겠습니까?");
 
+            // 동의할 때만 업데이트 API 호출
             if (userAgreed) {
                 await fetch(`/users/${userId}/agreement`, {
                     method: 'POST',
@@ -306,6 +294,7 @@
         console.error("데이터 조회 오류:", error);
     }
 });
+        // --------------------------------
 
         window.addEventListener('DOMContentLoaded', loadFeed);
 
@@ -394,10 +383,6 @@
                     </div>
 
                     <div class="comment-input-wrap">
-                        <div class="siren-icon" title="유해 콘텐츠 신고">
-                            <i class="fa-solid fa-lightening-bolt"></i>
-                        </div>
-
                         <div id="preview-cont-${postId}" class="image-preview-container">
                             <img id="preview-img-${postId}" class="image-preview">
                             <div class="preview-remove" onclick="removePreview(${postId})">&times;</div>
