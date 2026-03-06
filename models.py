@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, Text, NVARCHAR, String  # ⭐️ NVARCHAR 추가
+from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, Text, NVARCHAR, String, Boolean  # ⭐️ NVARCHAR 추가
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -7,9 +7,14 @@ from database import Base
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(NVARCHAR) # ⭐️ String 대신 NVARCHAR
-    role = Column(NVARCHAR) 
+    username = Column(NVARCHAR)
+    role = Column(NVARCHAR)
     created_at = Column(DateTime, server_default=func.now())
+    # ⭐️ 개인정보 수집 및 AI 서비스 이용 동의 여부
+    is_agreed = Column(Boolean, default=False, nullable=False) 
+    # ⭐️ 동의한 시간 (나중에 법적 증거로 활용 가능)
+    agreed_at = Column(DateTime, nullable=True) 
+    
 
     posts = relationship("Post", back_populates="author")
     comments = relationship("Comment", back_populates="author")

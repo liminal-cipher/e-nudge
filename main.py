@@ -18,7 +18,7 @@ from fastapi.concurrency import run_in_threadpool
 import time
 from database import get_db, engine
 import models
-
+from datetime import datetime
 # DB 테이블 생성
 models.Base.metadata.create_all(bind=engine)
 
@@ -304,4 +304,37 @@ async def delete_comment(comment_id: int, db: Session = Depends(get_db)):
         return {"status": "success", "message": f"댓글 {comment_id}이(가) 삭제되었습니다."}
     except Exception as e:
         db.rollback()
+        return JSONResponse(status_code=500, content={"detail": str(e)})
+    
+@app.post("/users/{user_id}/agreement")
+async def update_user_agreement(
+    user_id: int, 
+    data: dict, 
+    db: Session = Depends(get_db)
+):
+    """
+    프론트엔드에서 전달된 유저의 개인정보 수집 동의 여부를 DB에 기록합니다.
+    """
+    try:
+        is_agreed = data.get("is_agreed", False)
+        
+        # 유저 정보 조회
+        user = db.query(models.User).filter(models.User.id == user_id).first()
+        
+        if not user:
+            # 실습용 환경이므로 유저가 없을 경우 생성하거나 에러를 반환
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # 동의 여부 및 동의 시간 업데이트
+        user.is_agreed = is_agreed
+        user.agreed_at = datetime.now() if is_agreed else None
+        
+        db.commit()
+        
+        print(f"👤 [User {user_id}] 개인정보 동의 업데이트: {is_agreed}")
+        return {"status": "success", "user_id": user_id, "is_agreed": is_agreed}
+
+    except Exception as e:
+        db.rollback()
+        print(f"❌ 동의 정보 업데이트 실패: {e}")
         return JSONResponse(status_code=500, content={"detail": str(e)})
