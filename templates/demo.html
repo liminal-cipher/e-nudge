@@ -136,7 +136,7 @@
         </a>
 
         <h1 class="admin-title">AI 댓글 넛지 시스템</h1>
-        <p class="admin-desc">TF-IDF + 로지스틱 회귀 모델을 활용하여 작성 중인 텍스트의 악성 확률을 실시간으로 분석합니다. 확률에 따라 3단계 넛지(안전 / 주의 / 위험)를 적용하여 건전한 소통 문화를 유도합니다.</p>
+        <p class="admin-desc">ComplementNB 모델 + TF-IDF을 활용하여 작성 중인 텍스트의 악성 확률을 실시간으로 분석합니다. 확률에 따라 3단계 넛지(안전 / 주의 / 위험)를 적용하여 건전한 소통 문화를 유도합니다.</p>
 
         <!-- 3단계 넛지 시스템 -->
         <h2 class="admin-list-title" style="margin-bottom: 16px;"><i class="fa-solid fa-layer-group"></i> 3단계 넛지 시스템</h2>
@@ -219,7 +219,7 @@
                 </li>
                 <li class="admin-list-item">
                     <span class="key">분석 방식</span>
-                    <span class="val" style="color: var(--text-sub);"><i class="fa-solid fa-flask" style="margin-right:6px;"></i>로컬 Mock</span>
+                    <span class="val" style="color: var(--text-sub);"><i class="fa-solid fa-flask" style="margin-right:6px;"></i>ComplementNB 모델 + TF-IDF</span>
                 </li>
             </ul>
         </section>
