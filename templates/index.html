@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+
+        @keyframes blink {
+            0% { opacity: 1; transform: scale(1.1); }
+            100% { opacity: 0.3; transform: scale(1); }
+        }
+
         :root {
             --primary: #12d3cf;
             --bg: #f8f9fa;
@@ -364,30 +370,28 @@
                             let badgeColor = 'var(--safe)';
                             let sirenIcon = ''; 
 
-                            // 1. 아이콘 설정 (라벨 바깥 오른쪽 위에 배치할 아이콘)
-                            // 위험(Hate/Unsafe)과 주의(Offensive) 라벨일 때만 생성합니다.
+                            // 주의/위험 라벨일 때만 사이렌(경고) 아이콘 생성
                             if (label === 'hate' || label.includes('unsafe_image') || label === 'offensive') {
                                 badgeColor = (label === 'hate' || label.includes('unsafe_image')) ? 'var(--danger)' : 'var(--offensive)';
                                 
-                                // 포지션을 absolute로 주어 라벨 오른쪽 위에 고정합니다.
+                                // 전구 대신 사이렌 느낌의 'fa-bell' 또는 'fa-circle-exclamation' 사용
+                                // top: -25px로 라벨과 확실히 거리를 둡니다.
                                 sirenIcon = `
-                                    <i class="fa-solid fa-lightbulb" 
-                                    style="position: absolute; top: -8px; right: -8px; 
-                                            color: ${badgeColor}; background: white; border-radius: 50%; 
-                                            font-size: 14px; width: 18px; height: 18px; 
-                                            display: flex; align-items: center; justify-content: center;
-                                            box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 1;">
-                                    </i>`;
+                                    <div style="position: absolute; top: -25px; right: 0; 
+                                                color: ${badgeColor}; font-size: 18px; 
+                                                z-index: 2; animation: blink 0.8s infinite alternate;">
+                                        <i class="fa-solid fa-circle-exclamation"></i>
+                                    </div>`;
                             }
 
                             return `
                                 <div class="comment-item">
                                     <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd; border-radius:50%; margin-right:8px; flex-shrink:0;">${(c.username || '익').substring(0,1)}</div>
                                     <div class="comment-content">
-                                        <div class="comment-user-row">
+                                        <div class="comment-user-row" style="margin-bottom: 12px; position: relative;"> 
                                             <span class="comment-user">${c.username || '익명'}</span>
                                             
-                                            <div style="position: relative; display: inline-block;">
+                                            <div style="position: relative; display: inline-block; margin-top: 20px;">
                                                 ${sirenIcon}
                                                 <span class="ai-badge" style="background:${badgeColor}; margin: 0; position: relative;">
                                                     ${c.label}
