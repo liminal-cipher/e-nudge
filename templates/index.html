@@ -362,12 +362,22 @@
                         ${post.comments ? post.comments.map(c => {
                             const label = (c.label || 'none').toLowerCase();
                             let badgeColor = 'var(--safe)';
-                            let iconHtml = ''; // 아이콘 변수
+                            let sirenIcon = ''; 
 
-                            // 부적절한 라벨일 때만 아이콘 추가 (무료 버전에서 확실한 클래스명 사용)
+                            // 1. 아이콘 설정 (라벨 바깥 오른쪽 위에 배치할 아이콘)
+                            // 위험(Hate/Unsafe)과 주의(Offensive) 라벨일 때만 생성합니다.
                             if (label === 'hate' || label.includes('unsafe_image') || label === 'offensive') {
-                                badgeColor = label === 'offensive' ? 'var(--offensive)' : 'var(--danger)';
-                                iconHtml = '<i class="fa-solid fa-triangle-exclamation" style="margin-left:5px; font-size:10px;"></i>';
+                                badgeColor = (label === 'hate' || label.includes('unsafe_image')) ? 'var(--danger)' : 'var(--offensive)';
+                                
+                                // 포지션을 absolute로 주어 라벨 오른쪽 위에 고정합니다.
+                                sirenIcon = `
+                                    <i class="fa-solid fa-lightbulb" 
+                                    style="position: absolute; top: -8px; right: -8px; 
+                                            color: ${badgeColor}; background: white; border-radius: 50%; 
+                                            font-size: 14px; width: 18px; height: 18px; 
+                                            display: flex; align-items: center; justify-content: center;
+                                            box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 1;">
+                                    </i>`;
                             }
 
                             return `
@@ -376,9 +386,13 @@
                                     <div class="comment-content">
                                         <div class="comment-user-row">
                                             <span class="comment-user">${c.username || '익명'}</span>
-                                            <span class="ai-badge" style="background:${badgeColor}; display: inline-flex; align-items: center;">
-                                                ${c.label}${iconHtml}
-                                            </span>
+                                            
+                                            <div style="position: relative; display: inline-block;">
+                                                ${sirenIcon}
+                                                <span class="ai-badge" style="background:${badgeColor}; margin: 0; position: relative;">
+                                                    ${c.label}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div class="comment-text">${c.content}</div>
                                         ${c.image_url ? `<img src="${c.image_url}" class="comment-attached-img" onclick="openModal('${c.image_url}')">` : ''}
