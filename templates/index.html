@@ -369,7 +369,9 @@
                             return `
                                     <div class="comment-item">
                                         <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd; border-radius:50%; margin-right:8px; flex-shrink:0;">${(c.username || '익').substring(0,1)}</div>
-                                        <div class="comment-content">
+                                        <div class="comment-content" style="position: relative;">
+                                            <img src="siren.png" style="position: absolute; top: -10px; right: -10px; width: 24px; height: 24px; z-index: 10;">
+                                            
                                             <div class="comment-user-row">
                                                 <span class="comment-user">${c.username || '익명'}</span>
                                                 <span class="ai-badge" style="background:${badgeColor}">
