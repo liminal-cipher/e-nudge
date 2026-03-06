@@ -54,6 +54,7 @@ class AdminLog(Base):
 # 5. 모델 관리 테이블
 class MLModel(Base):
     __tablename__ = "ml_model"
-    model_version = Column(NVARCHAR, primary_key=True) 
+    model_version = Column(NVARCHAR) 
     inference_time = Column(Float)
     created_at = Column(DateTime, server_default=func.now())
+    id = Column(Integer, primary_key=True, autoincrement=True)

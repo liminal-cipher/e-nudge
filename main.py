@@ -196,14 +196,11 @@ async def create_comment(
         # --- [MLModel 기록] ---
         # model_version이 PK이므로 기존 레코드가 있는지 확인 후 업데이트 또는 생성
         ml_entry = db.query(models.MLModel).filter(models.MLModel.model_version == 'complementnb_v4').first()
-        if ml_entry:
-            ml_entry.inference_time = inference_duration
-        else:
-            new_ml_log = models.MLModel(
-                model_version='complementnb_v4',
-                inference_time=inference_duration
-            )
-            db.add(new_ml_log)
+        new_ml_log = models.MLModel(
+            model_version='complementnb_v4',
+            inference_time=inference_duration
+        )
+        db.add(new_ml_log)
 
         # 3. Hate(2점) 등급이면 차단 (차단되더라도 ML 기록은 남음)
         if final_weight == 2:
@@ -283,7 +280,8 @@ async def get_posts(db: Session = Depends(get_db)):
             "comments": [{
                 "id": c.id, "content": c.content, "image_url": c.image_url,
                 "username": c.author.username if c.author else "익명",
-                "label": c.label, "score": c.toxicity_score
+                "label": c.label, 
+                "toxicity_score": c.toxicity_score  # <--- "score"에서 "toxicity_score"로 변경
             } for c in post.comments]
         })
     return result
