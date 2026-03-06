@@ -6,7 +6,7 @@
 ### 🛠 Tech Stack
 - **Framework**: `FastAPI`
 - **Cloud**: `Azure SQL Database`, `Azure Blob Storage`
-- **AI/ML**: `Scikit-learn (NLP)`, `Computer Vision API`
+- **AI/ML**: `Scikit-learn (NLP)`, `Custom Vision API`
 - **Database**: `SQLAlchemy` (NVARCHAR 다국어 처리)
 
 ---
