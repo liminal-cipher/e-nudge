@@ -362,14 +362,12 @@
                         ${post.comments ? post.comments.map(c => {
                             const label = (c.label || 'none').toLowerCase();
                             let badgeColor = 'var(--safe)';
-                            let iconHtml = ''; // 아이콘 변수 추가
+                            let iconHtml = ''; // 아이콘 변수
 
-                            if (label === 'hate' || label.includes('unsafe_image')) {
-                                badgeColor = 'var(--danger)';
-                                iconHtml = '<i class="fa-solid fa-siren-on" style="margin-left:4px;"></i>';
-                            } else if (label === 'offensive') {
-                                badgeColor = 'var(--offensive)';
-                                iconHtml = '<i class="fa-solid fa-siren-on" style="margin-left:4px;"></i>';
+                            // 부적절한 라벨일 때만 아이콘 추가 (무료 버전에서 확실한 클래스명 사용)
+                            if (label === 'hate' || label.includes('unsafe_image') || label === 'offensive') {
+                                badgeColor = label === 'offensive' ? 'var(--offensive)' : 'var(--danger)';
+                                iconHtml = '<i class="fa-solid fa-triangle-exclamation" style="margin-left:5px; font-size:10px;"></i>';
                             }
 
                             return `
@@ -378,7 +376,7 @@
                                     <div class="comment-content">
                                         <div class="comment-user-row">
                                             <span class="comment-user">${c.username || '익명'}</span>
-                                            <span class="ai-badge" style="background:${badgeColor}">
+                                            <span class="ai-badge" style="background:${badgeColor}; display: inline-flex; align-items: center;">
                                                 ${c.label}${iconHtml}
                                             </span>
                                         </div>
