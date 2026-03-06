@@ -275,7 +275,7 @@
                 const userData = await checkRes.json();
                 
                 // 2. is_agreed가 true가 아닐 때만 alert/confirm 실행
-                if (userData && userData.is_agreed !== true) {
+                if (userData && userData.is_agreed != true) {
                     const userAgreed = confirm("⚠️ [개인정보 수집 및 AI 서비스 이용 동의]\n서비스 품질 개선 및 AI 모델 분석을 위해 데이터 수집에 동의하시겠습니까?\n(미동의 시에도 서비스 이용은 가능하나 AI 기능이 일부 제한될 수 있습니다.)");
 
                     // 서버로 동의 결과 업데이트
