@@ -265,44 +265,35 @@
     </div>
 
     <script>
-        // --- 개인정보 수집 동의 로직 수정 ---
         window.addEventListener('DOMContentLoaded', async () => {
-        const userId = 8;
+    const userId = 8;
+    
+    try {
+        const checkRes = await fetch(`/users/${userId}`);
+        const userData = await checkRes.json();
         
-        try {
-            const checkRes = await fetch(`/users/${userId}`);
-            const userData = await checkRes.json();
-            
-            // 1. 값의 타입과 구조를 정확히 파악하기 위한 로그
-            console.log("데이터 타입 확인:", typeof userData.is_agreed);
-            console.log("데이터 값 확인:", userData.is_agreed);
+        console.log("현재 유저 동의 상태:", userData.is_agreed);
 
-            // 2. 여러 케이스(boolean true, 문자열 "True", 숫자 1)를 모두 체크
-            // 이 조건에 해당하면 '이미 동의함'으로 간주하고 return해서 종료합니다.
-            const alreadyAgreed = 
-                userData.is_agreed === true || 
-                userData.is_agreed === "True" || 
-                userData.is_agreed === "true" ||
-                userData.is_agreed === 1;
+        // 🔍 핵심 체크: 정확히 'true'가 아닐 때만 실행 (null, undefined, false 방어)
+        if (userData.is_agreed !== true) { 
+            const userAgreed = confirm("⚠️ [개인정보 수집 및 AI 서비스 이용 동의]\n서비스 품질 개선 및 분석을 위해 데이터 수집에 동의하시겠습니까?");
 
-            if (alreadyAgreed) {
-                console.log("ID 8: 동의 확인됨. 로직을 종료합니다.");
-                return; // 여기서 멈추므로 alert이 뜨지 않습니다.
+            // 동의할 때만 업데이트 API 호출
+            if (userAgreed) {
+                await fetch(`/users/${userId}/agreement`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_agreed: true })
+                });
+                console.log("동의 완료");
             }
-
-            // 3. 위 조건에 해당하지 않을 때만 아래 실행
-            const userAgreed = confirm("⚠️ [개인정보 수집 및 AI 서비스 이용 동의]\n서비스 품질 개선을 위해 데이터 수집에 동의하시겠습니까?");
-
-            await fetch(`/users/${userId}/agreement`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ is_agreed: userAgreed })
-            });
-            
-        } catch (error) {
-            console.error("오류 발생:", error);
+        } else {
+            console.log("이미 동의된 사용자입니다. Alert을 생략합니다.");
         }
-    });
+    } catch (error) {
+        console.error("데이터 조회 오류:", error);
+    }
+});
         // --------------------------------
 
         window.addEventListener('DOMContentLoaded', loadFeed);

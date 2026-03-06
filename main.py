@@ -347,3 +347,13 @@ async def update_user_agreement(
         db.rollback()
         print(f"❌ 동의 정보 업데이트 실패: {e}")
         return JSONResponse(status_code=500, content={"detail": str(e)})
+
+@app.get("/users/{user_id}")
+async def get_user_info(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        # 유저가 없으면 기본값 리턴 (에러 방지)
+        return {"id": user_id, "is_agreed": False}
+    
+    # DB의 True/False가 JSON의 true/false로 정확히 변환되어 나갑니다.
+    return {"id": user.id, "is_agreed": user.is_agreed}
