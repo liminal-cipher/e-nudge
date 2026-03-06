@@ -31,6 +31,8 @@ app = FastAPI()
 CUSTOM_VISION_URL = "https://gdscs-prediction.cognitiveservices.azure.com/customvision/v3.0/Prediction/720991f1-25e4-4d32-968d-0e00abbb1166/classify/iterations/Iteration5/image"
 CUSTOM_VISION_KEY = "***REMOVED***"
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # 모델 로드
 try:
     lr_model = joblib.load("lr_model.pkl")

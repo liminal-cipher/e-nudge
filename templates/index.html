@@ -368,9 +368,9 @@
                             }
                             return `
                                     <div class="comment-item">
-                                        <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd; border-radius:50%; margin-right:8px; flex-shrink:0;">${(c.username || '익').substring(0,1)}</div>
+                                        <div class="nav-icon" ...>${(c.username || '익').substring(0,1)}</div>
                                         <div class="comment-content" style="position: relative; overflow: visible;">
-                                            <img src="./siren.png" style="position: absolute; top: -10px; right: -10px; width: 24px; height: auto; z-index: 10;">
+                                            <img src="/static/siren.png" style="position: absolute; top: -10px; right: -10px; width: 24px; height: auto; z-index: 10;">
                                             
                                             <div class="comment-user-row" style="display: flex; justify-content: space-between; align-items: center;">
                                                 <span class="comment-user">${c.username || '익명'}</span>
@@ -380,15 +380,16 @@
                                                     display: inline-flex; 
                                                     align-items: center; 
                                                     justify-content: center; 
-                                                    height: 18px;            /* 높이 고정 */
-                                                    padding: 0 8px;          /* 좌우 여백만 적용 */
-                                                    gap: 4px; 
-                                                    font-size: 10px; 
-                                                    font-weight: 600;
-                                                    line-height: 1;          /* 텍스트 높이 초기화 */
-                                                    border-radius: 10px;
+                                                    height: 18px;
+                                                    padding: 0 10px; 
+                                                    border-radius: 12px;
+                                                    color: white;
+                                                    font-size: 11px;
+                                                    font-weight: bold;
+                                                    line-height: 1;
                                                 ">
-                                                    <i class="fa-solid fa-siren-on" style="margin-top: -1px;"></i> <span style="display: inline-block; transform: translateY(0.5px);">${c.label}</span> </span>
+                                                    <span style="display: inline-block; transform: translateY(0.5px);">${c.label}</span>
+                                                </span>
                                             </div>
                                             
                                             <div class="comment-text" style="margin-top: 5px;">${c.content}</div>
