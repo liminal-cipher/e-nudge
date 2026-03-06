@@ -281,8 +281,17 @@ async def get_posts(db: Session = Depends(get_db)):
 templates = Jinja2Templates(directory="templates")
 
 @app.get("/", response_class=HTMLResponse)
-async def read_main(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def read_main(request: Request, db: Session = Depends(get_db)):
+    # ID가 8인 유저의 동의 여부 확인
+    user = db.query(models.User).filter(models.User.id == 8).first()
+    
+    # 유저가 없거나 false면 기본값 False
+    is_agreed = user.is_agreed if user else False
+    
+    return templates.TemplateResponse("index.html", {
+        "request": request, 
+        "is_agreed": is_agreed  # 템플릿으로 상태 전달
+    })
 
 @app.get("/admin", response_class=HTMLResponse)
 async def read_admin(request: Request):
