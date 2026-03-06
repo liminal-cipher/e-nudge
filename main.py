@@ -154,57 +154,49 @@ async def create_comment(
     image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
-    # [시작] 추론 시간 측정을 위한 타이머 시작
-    start_time = time.time()
-    
     try:
         text_ai_res = {"label": "none", "score": 0.0}
         image_ai_res = {"label": "clean", "probability": 0.0}
         uploaded_url = None
 
-        # 1. 텍스트 분석
+        # 1. 텍스트 분석 및 시간 측정 (로그: complementnb_v4)
         if content and content.strip():
+            t_start = time.time() # 텍스트 타이머 시작
             text_ai_res = await analyze_text_ai(content)
+            t_duration = round(time.time() - t_start, 4)
+            
+            # 텍스트 로그 개별 저장
+            db.add(models.MLModel(model_version='complementnb_v4', inference_time=t_duration))
 
-        # 2. 이미지 처리 (분석 & 업로드 병렬 실행)
+        # 2. 이미지 처리 및 시간 측정 (로그: CV)
         if image and image.filename and len(image.filename.strip()) > 0:
             image_data = await image.read()
             if image_data:
+                i_start = time.time() # 이미지 타이머 시작
                 image_task = analyze_image_ai(image_data)
                 upload_task = upload_image_to_blob(image_data, image.filename, image.content_type)
                 image_ai_res, uploaded_url = await asyncio.gather(image_task, upload_task)
+                
+                i_duration = round(time.time() - i_start, 4)
+                
+                # 이미지 로그 개별 저장
+                db.add(models.MLModel(model_version='CV', inference_time=i_duration))
 
-        # --- [추론 시간 계산] ---
-        inference_duration = round(time.time() - start_time, 4)
-
-        # --- 라벨 가중치 판별 로직 ---
+        # --- 라벨 가중치 판별 로직 (기존과 동일) ---
         label_weights = {"hate": 2, "offensive": 1, "none": 0, "clean": 0, "neutral": 0, "unknown": 0, "error": 0}
-        
         text_label = text_ai_res.get("label", "none").lower()
         img_label = image_ai_res.get("label", "none").lower()
 
-        text_weight = label_weights.get(text_label, 0)
-        img_weight = label_weights.get(img_label, 0)
-
-        final_weight = max(text_weight, img_weight)
+        final_weight = max(label_weights.get(text_label, 0), label_weights.get(img_label, 0))
         weight_to_label = {2: "hate", 1: "offensive", 0: "none"}
         final_label = weight_to_label[final_weight]
         
         raw_score = max(text_ai_res["score"], image_ai_res.get("probability", 0.0))
         final_score = round(float(raw_score), 2)
 
-        # --- [MLModel 기록] ---
-        # model_version이 PK이므로 기존 레코드가 있는지 확인 후 업데이트 또는 생성
-        ml_entry = db.query(models.MLModel).filter(models.MLModel.model_version == 'complementnb_v4').first()
-        new_ml_log = models.MLModel(
-            model_version='complementnb_v4',
-            inference_time=inference_duration
-        )
-        db.add(new_ml_log)
-
-        # 3. Hate(2점) 등급이면 차단 (차단되더라도 ML 기록은 남음)
+        # 3. Hate(2점) 등급이면 차단 (ML 로그 저장을 위해 커밋만 추가)
         if final_weight == 2:
-            db.commit() # MLModel 기록을 위해 커밋
+            db.commit() 
             print(f"🚫 [차단] 유해 콘텐츠 감지 (Text: {text_label}, Image: {img_label})")
             return JSONResponse(
                 status_code=400,
@@ -218,7 +210,7 @@ async def create_comment(
                 }
             )
 
-        # 4. 'none' 또는 'offensive'일 때 DB 저장 진행
+        # 4. 일반 저장 로직 (기존과 동일)
         new_comment = models.Comment(
             post_id=post_id,
             user_id=8, 
@@ -228,12 +220,10 @@ async def create_comment(
             label=final_label
         )
         db.add(new_comment)
-        db.flush() # AdminLog에서 사용할 comment.id를 미리 가져오기 위해 실행
+        db.flush() 
 
         # --- [AdminLog 기록] ---
-        new_admin_log = models.AdminLog(
-            comments_id=new_comment.id
-        )
+        new_admin_log = models.AdminLog(comments_id=new_comment.id)
         db.add(new_admin_log)
         
         db.commit()
