@@ -397,6 +397,14 @@
                     popup.innerText = isImageHate
                         ? "🚫 부적절한 이미지가 감지되어 게시가 차단되었습니다."
                         : "🚫 부적절한 언어가 감지되어 게시가 차단되었습니다. 내용을 수정해주세요.";
+
+                    // 하단 AI 고지 문구 결합
+                    popup.innerHTML = `
+                        ${mainMsg}<br>
+                        <div style="margin-top: 10px; opacity: 0.8; font-size: 0.8em;">
+                            <small>AI 판정 결과입니다. 오류가 있을 수 있습니다.</small>
+                        </div>
+                    `;
                     popup.classList.remove('offensive');
                     popup.style.backgroundColor = "#ff5a5a";
                     popup.classList.add('show');
@@ -412,7 +420,15 @@
                 if (response.ok) {
                     // --- [CASE 2: OFFENSIVE - 사용자 선택 넛지] ---
                     if (finalLabel === 'offensive') {
-                        const msg = "⚠️ 잠시만요! 작성하신 내용에 상대방이 불쾌감을 느낄 수 있는 표현이 포함되어 있습니다.<br><br> ※ 경고를 확인했지만 게시하면 관리자에게 기록됩니다.";
+                        const msg = `
+                                    ⚠️ 잠시만요! 작성하신 내용에 상대방이 불쾌감을 느낄 수 있는 표현이 포함되어 있습니다.<br><br>
+                                    <div style="text-align: center;">
+                                        <strong>※ 경고를 확인했지만 게시하면 관리자에게 기록됩니다.</strong>
+                                    </div>
+                                    <div style="text-align: center; margin-top: 15px; opacity: 0.6; font-size: 0.75em;">
+                                        <small>AI 판정 결과입니다. 기술적 한계로 인해 오류가 있을 수 있습니다.</small>
+                                    </div>
+                                `;
                         popup.innerHTML =
                             '<span class="nudge-popup-text">' + msg + '</span>' +
                             '<div class="nudge-popup-buttons">' +
