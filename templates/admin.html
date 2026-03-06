@@ -217,15 +217,12 @@
                     totalComments += post.comments.length;
                     post.comments.forEach(c => {
                         const label = (c.label || 'none').toLowerCase();
-                        // 1. 안전 (clean, safe, none)
                         if (label.includes('clean') || label === 'safe' || label === 'none') {
                             safe++;
                         } 
-                        // 2. 주의 무시 (hate, offensive)
                         else if (label === 'hate' || label === 'offensive') {
                             warning++;
                         } 
-                        // 3. 기타 위험 탐지
                         else {
                             danger++;
                         }
@@ -252,7 +249,6 @@
                 }
             });
 
-            // 필터링: 'warning' 탭일 때는 안전하지 않은 댓글만 표시
             const filtered = currentTab === 'warning' 
                 ? commentsToDisplay.filter(c => !(['none', 'safe'].includes((c.label || '').toLowerCase()) || (c.label || '').includes('clean')))
                 : commentsToDisplay;
@@ -278,16 +274,16 @@
                 const li = document.createElement('li');
                 li.className = 'admin-list-item';
                 
-                // 이미지 유무 아이콘 표시
                 const imageIcon = item.image_url ? `<i class="fa-regular fa-image" style="color:var(--primary);" title="이미지 포함"></i>` : '';
 
+                // [핵심 수정] item.score를 item.toxicity_score로 변경하여 0.00 문제 해결
                 li.innerHTML = `
                     <div style="flex: 1;">
                         <div class="content">
                             ${item.content || '(이미지 댓글)'} ${imageIcon}
                         </div>
                         <div class="meta">
-                            게시글 #${item.parentPostId} · ${item.username || '익명'} · 스코어: ${item.score ? item.score.toFixed(2) : '0.00'}
+                            게시글 #${item.parentPostId} · ${item.username || '익명'} · 스코어: ${item.toxicity_score ? item.toxicity_score.toFixed(2) : '0.00'}
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 15px;">
@@ -307,7 +303,7 @@
             try {
                 const response = await fetch(`/comments/${commentId}`, { method: 'DELETE' });
                 if (response.ok) {
-                    fetchAdminData(); // 화면 갱신
+                    fetchAdminData();
                 } else {
                     alert("삭제 실패");
                 }
