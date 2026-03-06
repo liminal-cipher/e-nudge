@@ -364,7 +364,7 @@
                         <i class="fa-regular fa-comment"></i> ${post.comments ? post.comments.length : 0}
                     </div>
                     
-                    <<div class="comment-list">
+                    <div class="comment-list">
                         ${post.comments ? post.comments.map(c => {
                             const label = (c.label || 'none').toLowerCase();
                             let badgeColor = 'var(--safe)';
