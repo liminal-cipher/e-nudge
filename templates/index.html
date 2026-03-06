@@ -364,42 +364,44 @@
                         <i class="fa-regular fa-comment"></i> ${post.comments ? post.comments.length : 0}
                     </div>
                     
-                    <div class="comment-list">
+                    <<div class="comment-list">
                         ${post.comments ? post.comments.map(c => {
                             const label = (c.label || 'none').toLowerCase();
                             let badgeColor = 'var(--safe)';
-                            let sirenIcon = ''; 
+                            let sirenHtml = ''; 
 
-                            // 주의/위험 라벨일 때만 사이렌(경고) 아이콘 생성
+                            // 주의/위험일 때만 실제 사이렌 이미지(SVG)를 활용
                             if (label === 'hate' || label.includes('unsafe_image') || label === 'offensive') {
                                 badgeColor = (label === 'hate' || label.includes('unsafe_image')) ? 'var(--danger)' : 'var(--offensive)';
                                 
-                                // 전구 대신 사이렌 느낌의 'fa-bell' 또는 'fa-circle-exclamation' 사용
-                                // top: -25px로 라벨과 확실히 거리를 둡니다.
-                                sirenIcon = `
-                                    <div style="position: absolute; top: -25px; right: 0; 
-                                                color: ${badgeColor}; font-size: 18px; 
-                                                z-index: 2; animation: blink 0.8s infinite alternate;">
-                                        <i class="fa-solid fa-circle-exclamation"></i>
+                                // 공공 라이브러리의 사이렌 아이콘 URL을 직접 사용 (무료 폰트 제약 해결)
+                                sirenHtml = `
+                                    <div style="margin-bottom: 6px; animation: blink 0.6s infinite alternate;">
+                                        <img src="https://cdn-icons-png.flaticon.com/512/564/564619.png" 
+                                            style="width: 22px; height: 22px; filter: drop-shadow(0 0 2px ${badgeColor});">
                                     </div>`;
                             }
 
                             return `
-                                <div class="comment-item">
-                                    <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd; border-radius:50%; margin-right:8px; flex-shrink:0;">${(c.username || '익').substring(0,1)}</div>
-                                    <div class="comment-content">
-                                        <div class="comment-user-row" style="margin-bottom: 12px; position: relative;"> 
-                                            <span class="comment-user">${c.username || '익명'}</span>
+                                <div class="comment-item" style="display: flex; align-items: flex-start; margin-top: 18px;">
+                                    <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd; border-radius:50%; margin-right:8px; flex-shrink:0;">
+                                        ${(c.username || '익').substring(0,1)}
+                                    </div>
+                                    <div class="comment-content" style="flex: 1; background: #f8f9fa; padding: 12px 15px; border-radius: 14px;">
+                                        <div class="comment-user-row" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 6px;">
+                                            <span class="comment-user" style="font-weight: 700; font-size: 14px;">${c.username || '익명'}</span>
                                             
-                                            <div style="position: relative; display: inline-block; margin-top: 20px;">
-                                                ${sirenIcon}
-                                                <span class="ai-badge" style="background:${badgeColor}; margin: 0; position: relative;">
+                                            <div style="display: flex; flex-direction: column; align-items: center; min-width: 60px;">
+                                                ${sirenHtml}
+                                                <span class="ai-badge" style="background:${badgeColor}; margin: 0; font-size: 10px; padding: 3px 9px; color: white; border-radius: 12px; font-weight: 700; white-space: nowrap;">
                                                     ${c.label}
                                                 </span>
                                             </div>
                                         </div>
-                                        <div class="comment-text">${c.content}</div>
-                                        ${c.image_url ? `<img src="${c.image_url}" class="comment-attached-img" onclick="openModal('${c.image_url}')">` : ''}
+                                        <div class="comment-text" style="font-size: 14.5px; line-height: 1.6; color: #444; word-break: break-all;">
+                                            ${c.content}
+                                        </div>
+                                        ${c.image_url ? `<img src="${c.image_url}" class="comment-attached-img" style="width: 100%; max-width: 200px; border-radius: 10px; margin-top: 12px; border: 1px solid #eee;" onclick="openModal('${c.image_url}')">` : ''}
                                     </div>
                                 </div>`;
                         }).join('') : ''}
