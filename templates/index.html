@@ -367,17 +367,19 @@
                                 badgeColor = 'var(--offensive)';
                             }
                             return `
-                                <div class="comment-item">
-                                    <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd; border-radius:50%; margin-right:8px; flex-shrink:0;">${(c.username || '익').substring(0,1)}</div>
-                                    <div class="comment-content">
-                                        <div class="comment-user-row">
-                                            <span class="comment-user">${c.username || '익명'}</span>
-                                            <span class="ai-badge" style="background:${badgeColor}">${c.label}</span>
+                                    <div class="comment-item">
+                                        <div class="nav-icon" style="width:30px; height:30px; font-size:10px; background:#ddd; border-radius:50%; margin-right:8px; flex-shrink:0;">${(c.username || '익').substring(0,1)}</div>
+                                        <div class="comment-content">
+                                            <div class="comment-user-row">
+                                                <span class="comment-user">${c.username || '익명'}</span>
+                                                <span class="ai-badge" style="background:${badgeColor}">
+                                                    <i class="fa-solid fa-siren-on" style="margin-right:4px;"></i>${c.label}
+                                                </span>
+                                            </div>
+                                            <div class="comment-text">${c.content}</div>
+                                            ${c.image_url ? `<img src="${c.image_url}" class="comment-attached-img" onclick="openModal('${c.image_url}')">` : ''}
                                         </div>
-                                        <div class="comment-text">${c.content}</div>
-                                        ${c.image_url ? `<img src="${c.image_url}" class="comment-attached-img" onclick="openModal('${c.image_url}')">` : ''}
-                                    </div>
-                                </div>`;
+                                    </div>`;
                         }).join('') : ''}
                     </div>
 
