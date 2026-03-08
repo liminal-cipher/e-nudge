@@ -120,7 +120,7 @@
 </head>
 <body>
     <header class="header">
-        <a href="/" class="header-logo"><i class="fa-solid fa-feather-pointed"></i> <span>댓글 <b>넛지</b></span></a>
+        <a href="/" class="header-logo"><i class="fa-solid fa-feather-pointed"></i><span><b>E-Nudge</b></span></a>
         <div class="search-bar"><i class="fa-solid fa-magnifying-glass" style="color:#adb5bd"></i><input type="text" placeholder="검색"></div>
         <div class="header-icons">
             <i class="fa-solid fa-flask"></i>
@@ -283,7 +283,7 @@
                 nudgeInline.innerHTML = '';
                 if (result.level === 'warning') {
                     nudgeInline.className = 'nudge-inline warning show';
-                    nudgeInline.innerHTML = '<div class="nudge-head">⚠️ 잠깐만요</div><div>불쾌감을 줄 수 있는 표현이 감지되었어요.</div>';
+                    nudgeInline.innerHTML = '<div class="nudge-head">⚠️ 잠시만요</div><div>불쾌감을 줄 수 있는 표현이 감지되었어요.</div>';
                 } else if (result.level === 'danger') {
                     nudgeInline.className = 'nudge-inline danger show';
                     nudgeInline.textContent = '🚫 명백한 욕설/비방이 감지되었습니다. 게시가 차단됩니다.';
