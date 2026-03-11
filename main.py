@@ -52,7 +52,19 @@ try:
     blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
 except Exception as e:
     print(f"⚠️ Storage 연결 설정 실패: {e}")
+# ============================================ 
 
+# Text Preprocessing Pipeline 
+
+# Author: 주희,경아,용준,윤재,유리,준상
+
+# Steps: emoji removal > URL strip > special char filter > 
+
+#        character dedup > Kiwi Korean tokenization > POS filtering 
+
+# KEEP_TAGS: NNG, NNP, NP, VV, VA, MAG, MM, SW, IC 
+
+# ============================================ 
 # --- [2. AI 분석 보조 함수들] ---
 
 def clean_text(text):
