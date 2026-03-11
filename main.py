@@ -116,6 +116,21 @@ async def analyze_text_ai(text: str):
     except Exception as e:
         print(f"❌ [TEXT AI] 분석 오류: {e}")
         return {"label": "error", "score": 0.0}
+
+# ============================================ 
+
+# Image Analysis Pipeline 
+
+# Author: Junsang 
+
+# Service: Azure Custom Vision API 
+
+# Data: Collected and preprocessed inappropriate image dataset 
+
+# Threshold: probability >= 0.9 flags as "hate" 
+
+# ============================================ 
+
 async def analyze_image_ai(image_bytes: bytes):
     if not image_bytes:
         return {"label": "no_image", "probability": 0.0}
