@@ -40,3 +40,18 @@
 - **Scalability**: 이미지 원본은 스토리지에, 주소는 DB에 저장하여 데이터 확장성 확보
 - **Traceability**: 모든 AI 추론 이력을 로그화하여 모델 성능 분석 및 데이터 기반 의사결정 가능
 - **User Experience**: '넛지(Nudge)' 로직을 통한 클린한 커뮤니티 환경 조성
+
+
+
+---
+
+### Team 
+
+| Member | Role |
+| :--- | :--- |
+| Youn Jae | Dev Lead / Project Management |
+| Kenzie | ML Modeling / Pseudo-labeling |
+| Yongju | Backend API / DB Design |
+| Yuri | Frontend Development |
+| Junsang | Image Data Collection & Preprocessing |
+| Juhee | Text Data Preprocessing |
