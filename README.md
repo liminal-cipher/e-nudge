@@ -15,7 +15,7 @@ Microsoft AI School 9기 1차 프로젝트 · 팀 고당스(6인) · **1차 프�
 
 기술 쪽 출발점은 성능 정체였다. 여러 모델과 파라미터를 튜닝해도 hate F1이 0.5 부근에서 멈췄고, 원인이 모델인지 데이터인지 알 수 없었다. 이 물음을 통제실험으로 규명한 것이 이 프로젝트의 핵심 기여다 ([Results](#results)).
 
-## What it does
+## What It Does
 
 1. **실시간 넛지 모더레이션**: 댓글 등록 시 텍스트(TF-IDF + ComplementNB)와 이미지(Azure Custom Vision)를 병렬 분석해 3단계로 분기한다. 정상 게시 / 넛지 경고(작성자에게 재고 요청) / 차단.
 2. **Decision Engine**: `toxicity = hate×1.0 + offensive×0.5`로 결합하고 임계값(0.44 / 0.55)으로 분기한다. 판정은 결정적 Python 로직이며 LLM은 쓰지 않는다.
