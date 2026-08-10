@@ -102,23 +102,25 @@ Azure 리소스(SQL·Blob·Custom Vision) 자격 증명이 필요하다. 교육 
 
 ## Team & Contributions
 
+파이프라인 순서로 적는다.
+
 | 이름 | 담당 |
 | --- | --- |
-| **조윤재** (Dev Lead) | 프로젝트 관리 · Decision Engine · 모델 서빙 |
-| 경아 | ML 모델링 · pseudo-labeling |
-| 용주 | 백엔드 API · DB 설계 |
-| 유리 | 프론트엔드 |
-| 준상 | 이미지 데이터 수집·전처리 |
-| 주희 | 텍스트 데이터 전처리 |
+| **Youn Jae** (Dev Lead) | 프로젝트 관리 · Decision Engine · 모델 서빙 |
+| Junsang | 이미지 데이터 수집·전처리 |
+| Juhee | 텍스트 데이터 전처리 |
+| Kenzie | ML 모델링 · pseudo-labeling |
+| Yongju | 백엔드 API · DB 설계 |
+| Yuri | 프론트엔드 |
 
 ## My Role (조윤재)
 
 | 담당 | 산출물 |
 | --- | --- |
-| 기획 | 프로젝트 아이템 원안(주희와 공동) · 기술 계획서 |
+| 기획 | 프로젝트 아이템 원안 · 기술 계획서 작성, 이후 Juhee와 함께 다듬음 |
 | Decision Engine | 분기 로직 설계·구현 |
-| 모델 서빙 | 학습된 모델의 FastAPI 로딩(용주와 공동) |
-| 데이터 | pseudo-labeling 파이프라인 공동 구축(경아와) |
+| 모델 서빙 | 학습된 모델의 FastAPI 로딩(Yongju와 공동) |
+| 데이터 | pseudo-labeling 파이프라인 공동 구축(Kenzie와) |
 | 통제실험 | "라벨 품질이 병목" 가설 제기 · 결과 해석 · 발표 |
 
 > 역할 분담의 정본은 팀 전원이 합의한 기여도 문서다. 커밋 이력은 팀 계정으로 집중돼 있어 개인별 기여를 반영하지 않는다.
