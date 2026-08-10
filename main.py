@@ -38,8 +38,9 @@ app = FastAPI()
 
 # ============================================ 
 # --- [0. AI 모델 설정값] ---
-CUSTOM_VISION_URL = "https://gdscs-prediction.cognitiveservices.azure.com/customvision/v3.0/Prediction/720991f1-25e4-4d32-968d-0e00abbb1166/classify/iterations/Iteration5/image"
-CUSTOM_VISION_KEY = "***REMOVED***"
+# 자격 증명은 환경 변수로 주입한다 (.env.example 참조)
+CUSTOM_VISION_URL = os.getenv("CUSTOM_VISION_URL", "")
+CUSTOM_VISION_KEY = os.getenv("CUSTOM_VISION_KEY", "")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -55,8 +56,8 @@ except Exception as e:
 KEEP_TAGS = {'NNG', 'NNP', 'NP', 'VV', 'VA', 'VV-I', 'VA-I', 'VV-R', 'VA-R', 'MAG', 'MM', 'SW', 'IC'}
 
 # --- [1. Azure Blob Storage 설정] ---
-AZURE_STORAGE_CONNECTION_STRING = "***REMOVED***"
-CONTAINER_NAME = "images" 
+AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "")
+CONTAINER_NAME = "images"
 
 try:
     blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
