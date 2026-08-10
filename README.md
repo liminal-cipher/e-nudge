@@ -130,15 +130,15 @@ Azure 리소스(SQL·Blob·Custom Vision) 자격 증명이 필요하다. 교육 
 
 | 담당 | 산출물 |
 | --- | --- |
-| 기획 | 프로젝트 아이템 원안(Juhee와 공동) · 기술 계획서 |
+| 기획 | 프로젝트 아이템 원안 · 기술 계획서 |
 | 서비스 설계 | 넛지 팝업 UX 설계 |
-| 백엔드 | FastAPI 백엔드 `main.py`, Decision Engine 분기 로직 (Yongju와 공동) |
-| 데이터 | pseudo-labeling 파이프라인 (Kenzie와 공동) |
+| 백엔드 | FastAPI 백엔드 `main.py`, Decision Engine 분기 로직 |
+| 데이터 | pseudo-labeling 파이프라인 |
 | 팀 운영 | 오퍼레이션과 협업 조율 |
 
-> 역할 분담의 정본은 팀 전원이 합의한 기여도 문서이며, 위 표는 거기서 옮긴 것이다. 커밋 이력은 팀 계정으로 집중돼 있어 개인별 기여를 반영하지 않는다.
+> 역할 분담의 정본은 팀 전원이 합의한 기여도 문서이며, 위 표는 거기서 옮긴 것이다. 일부 항목은 팀원과 함께한 작업이다. 커밋 이력은 팀 계정으로 집중돼 있어 개인별 기여를 반영하지 않는다.
 >
-> 통제실험(KcELECTRA 비교 모델링)은 Kenzie와 Junsang이 수행했다. 위 [Results](#results)의 수치는 팀의 결과이지 본인의 실험이 아니다.
+> 위 [Results](#results)의 통제실험(KcELECTRA 비교 모델링)은 본인 작업이 아니다. 팀의 결과다.
 
 ## Retrospective
 
