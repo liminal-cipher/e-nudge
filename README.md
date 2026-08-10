@@ -7,7 +7,7 @@
 ![scikit--learn](https://img.shields.io/badge/scikit--learn-ComplementNB-F7931E?logo=scikitlearn&logoColor=white)
 ![Azure](https://img.shields.io/badge/Azure-SQL%20%7C%20Blob%20%7C%20Custom%20Vision-0078D4)
 
-Microsoft AI School 9기 1차 프로젝트 · 팀 고당스(6인) · **1차 프로젝트 평가 1위** · 2026.02.23 ~ 03.10
+Microsoft AI School 9기 1차 프로젝트 · 팀 고당스 (6인) · 2026.02.23 ~ 03.10 · **프로젝트 평가 1위**
 
 [발표 자료](docs/presentation.pdf) · [데모 영상](docs/demo.mp4)
 
