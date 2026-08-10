@@ -58,18 +58,18 @@ Microsoft AI School 9기 1차 프로젝트 · 팀 고당스 (6인) · 2026.02.23
 
 | 항목 | 내용 |
 |---|---|
-| 텍스트(사람 라벨) | BEEP! 한국어 혐오표현 데이터셋 7,896건, 3클래스(hate / offensive / none) |
-| 텍스트(무라벨) | 커뮤니티 코퍼스 약 37만 건, ComplementNB 시드 모델로 pseudo-labeling |
-| 이미지 | 27,758장으로 Azure Custom Vision 학습 |
+| 텍스트(사람 라벨) | BEEP! 한국어 혐오표현 데이터셋 7,896건, 3클래스. 분포는 none 44.1% · offensive 31.6% · hate 24.2% |
+| 텍스트(무라벨) | 커뮤니티 코퍼스 203만 건에 ComplementNB 시드 모델로 pseudo-label 부여 |
+| 이미지 | 27,758장. 2단 구조로 Azure Custom Vision 학습 (Base는 NSFW 5클래스, K-Hate는 로고 64 + 밈 627) |
 | 라벨 난도 | BEEP! 어노테이터 간 일치도(IAA) 0.496. 사람도 절반은 갈리는 문제다 |
 
-학습 데이터는 repo에 포함하지 않는다. 포함된 것은 학습된 모델(`lr_model.pkl`, `tfidf_vectorizer.pkl`)뿐이다.
+BEEP!은 Moon et al., SocialNLP@ACL 2020이다. 학습 데이터는 repo에 포함하지 않는다. 포함된 것은 학습된 모델(`lr_model.pkl`, `tfidf_vectorizer.pkl`)뿐이다.
 
 ## Evaluation
 
 - **지표**: hate F1. 소수 클래스가 관심 대상이라 accuracy는 쓰지 않는다.
+- **모델이 아니라는 것부터 확인했다**: ML 알고리즘 9종(LR · Linear SVC · OvO · RF · GBC · MNB · CNB · MLP · Voting)이 전부 51~52%에서 수렴했고, GridSearchCV로 하이퍼파라미터 문제가 아님을 확인했다. 알고리즘을 바꿔도 천장이 같다는 것이 데이터를 의심한 근거다.
 - **통제실험 설계**: 모델(KcELECTRA)과 평가셋을 고정하고 **학습 데이터만** 바꿨다. "표현 방식이 어려워서"와 "라벨이 나빠서"라는 두 가설을 한 실험으로 분리하기 위해서다.
-- **외부 베이스라인**: BEEP! 원저자의 KoBERT hate F1 0.525.
 - **한계**: 단일 실행이며 시드 반복·분산 측정은 하지 않았다. 통제실험 모델은 KcELECTRA 하나다.
 
 ## Results
@@ -77,19 +77,19 @@ Microsoft AI School 9기 1차 프로젝트 · 팀 고당스 (6인) · 2026.02.23
 | 구성 | hate F1 | |
 |---|---|---|
 | KcELECTRA, 사람 라벨 7,896건만 | **0.739** | 통제실험 A |
-| KcELECTRA, + pseudo 37만 건 혼합 | 0.589 | 통제실험 B (−0.150) |
-| ComplementNB (배포 모델) | 0.52 | CPU 서빙 가능 |
-| KoBERT (원저자 벤치마크) | 0.525 | 참고 |
+| KcELECTRA, + pseudo 6,316건 1:1 혼합 | 0.701 | 통제실험 B (−0.038) |
+| ComplementNB (배포 모델) | 0.52 | CPU 서빙 가능. 튜닝 전 0.39 |
 
-**데이터를 37만 건 더했더니 성능이 내려갔다.** 병목은 모델 용량이 아니라 pseudo 라벨의 품질이었다. "데이터가 많을수록 좋다"가 라벨 노이즈 앞에서 뒤집히는 것을 정량으로 확인했다.
+**pseudo를 6,316건만, 그것도 1:1로 섞었는데 전 클래스가 내려갔다.** 병목은 모델 용량이 아니라 pseudo 라벨의 품질이었다. ML 점수가 낮을 때는 pseudo가 효과 있는 것처럼 보였지만, 같은 데이터를 DL 기준으로 재니 노이즈였다.
 
-이미지 분류(Custom Vision)는 Precision 92.7% / Recall 92.4%.
+203만 건을 만들어 두고도 소량 혼합에서 이미 하락이 나왔기 때문에 전량 투입은 하지 않았다. "데이터가 많을수록 좋다"가 라벨 노이즈 앞에서 뒤집히는 것을 확인한 지점이고, 사람이 라벨링하는 피드백 루프를 다음 단계로 잡은 근거다.
 
 ## Model & Inference
 
 - 배포 모델은 **ComplementNB**다. 파일명 `lr_model.pkl`은 초기 로지스틱 회귀 시절의 잔재이며 내용물은 ComplementNB다.
 - CPU 추론(Azure B2), 추론 시간은 요청마다 DB에 로깅.
-- KcELECTRA(0.739)는 GPU 서빙 비용 때문에 배포하지 못했다. 이 격차가 모델 경량화(양자화·distillation)를 공부하게 된 동기다.
+- Azure ML Designer의 API 이슈로 서빙 경로를 바꿔, 학습된 `.pkl`을 FastAPI에 직접 탑재하는 방식으로 갔다.
+- KcELECTRA(0.739)는 GPU 서빙 비용 때문에 배포하지 못했다. 대신 2단계로 나눴다. Phase 1은 ML로 빠르게 배포해 판정 근거를 설명할 수 있게 하고, Phase 2에서 피드백 루프로 사용자 라벨이 쌓이면 KcELECTRA fine-tuning으로 전환한다. 이 격차가 모델 경량화(양자화·distillation)를 공부하게 된 동기다.
 
 ## Getting Started
 
@@ -119,7 +119,7 @@ Azure 리소스(SQL·Blob·Custom Vision) 자격 증명이 필요하다. 교육 
 
 | 이름 | 담당 |
 | --- | --- |
-| **Youn Jae** (Team Lead) | 프로젝트 아이템 원안 · 기술 계획서 · 넛지 팝업 UX 설계 · FastAPI 백엔드 · pseudo-labeling 파이프라인 · 오퍼레이션과 협업 조율 |
+| **Youn Jae** (Team Lead · Dev Lead) | 프로젝트 아이템 원안 · 기술 계획서 · 넛지 팝업 UX 설계 · FastAPI 백엔드 · pseudo-labeling 파이프라인 · 오퍼레이션과 협업 조율 |
 | Junsang | Custom Vision 데이터 수집·학습 · 비교 모델링 실험 · 프론트엔드 UI · Transparency Note와 RAI · 일정 관리 |
 | Kenzie | 모델링(TF-IDF) · pseudo-labeling 파이프라인 · 비교 모델링 실험 · Transparency Note와 RAI · 발표 팩트체크·리서치·영상 · 일정 관리 |
 | Yongju | FastAPI 백엔드 · DB 설계 · Azure SQL 연동과 배포(CI/CD) · Transparency Note와 RAI |
