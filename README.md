@@ -1,7 +1,7 @@
-# AI Community Nudge (E-Nudge)
+# E-Nudge
 
-유해 댓글을 차단하는 대신 작성자의 성찰을 유도하는 넛지 기반 콘텐츠 모더레이션 서비스.
-A nudge-based moderation service that prompts authors to reflect, instead of just blocking toxic comments.
+> 유해 댓글을 차단하는 대신 작성자의 성찰을 유도하는 넛지 기반 콘텐츠 모더레이션 서비스.
+> A nudge-based moderation service that prompts authors to reflect, instead of just blocking toxic comments.
 
 ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)
 ![scikit--learn](https://img.shields.io/badge/scikit--learn-ComplementNB-F7931E?logo=scikitlearn&logoColor=white)
