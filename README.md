@@ -100,20 +100,28 @@ uvicorn main:app --reload
 
 Azure 리소스(SQL·Blob·Custom Vision) 자격 증명이 필요하다. 교육 과정 구독 종료로 현재는 로컬 텍스트 분석 경로만 재현 가능하다.
 
-## Team & My Role
+## Team & Contributions
 
-| Member | Role |
-| :--- | :--- |
-| **Youn Jae** | **Dev Lead / Project Management** |
-| Kenzie | ML Modeling / Pseudo-labeling |
-| Yongju | Backend API / DB Design |
-| Yuri | Frontend Development |
-| Junsang | Image Data Collection & Preprocessing |
-| Juhee | Text Data Preprocessing |
+| 이름 | 담당 |
+| --- | --- |
+| **조윤재** (Dev Lead) | 프로젝트 관리 · Decision Engine · 모델 서빙 |
+| 경아 | ML 모델링 · pseudo-labeling |
+| 용주 | 백엔드 API · DB 설계 |
+| 유리 | 프론트엔드 |
+| 준상 | 이미지 데이터 수집·전처리 |
+| 주희 | 텍스트 데이터 전처리 |
 
-**조윤재(Dev Lead)의 몫**: 프로젝트 아이템 원안(주희와 공동), 기술 계획서, Decision Engine 분기 로직 설계·구현, 학습된 모델의 FastAPI 서빙 로딩(용주와 백엔드 공동), pseudo-labeling 파이프라인 공동 구축(경아와), 통제실험의 "라벨 품질이 병목" 가설 제기와 결과 해석·발표.
+## My Role (조윤재)
 
-역할 분담의 정본은 팀 전원이 합의한 기여도 문서다. 커밋 이력은 팀 계정으로 집중돼 있어 개인별 기여를 반영하지 않는다.
+| 담당 | 산출물 |
+| --- | --- |
+| 기획 | 프로젝트 아이템 원안(주희와 공동) · 기술 계획서 |
+| Decision Engine | 분기 로직 설계·구현 |
+| 모델 서빙 | 학습된 모델의 FastAPI 로딩(용주와 공동) |
+| 데이터 | pseudo-labeling 파이프라인 공동 구축(경아와) |
+| 통제실험 | "라벨 품질이 병목" 가설 제기 · 결과 해석 · 발표 |
+
+> 역할 분담의 정본은 팀 전원이 합의한 기여도 문서다. 커밋 이력은 팀 계정으로 집중돼 있어 개인별 기여를 반영하지 않는다.
 
 ## Retrospective
 
@@ -122,4 +130,4 @@ Azure 리소스(SQL·Blob·Custom Vision) 자격 증명이 필요하다. 교육 
 
 ## Status
 
-완료 (2026-03-11 동결). Microsoft AI School 1차 프로젝트 출품작.
+완료. Microsoft AI School 9기 1차 프로젝트로 2026.02.23 ~ 03.10 진행. Azure 배포는 종료됐고 코드·발표 자료·데모 영상만 남아 있다. 마지막 갱신 2026-08-11.
