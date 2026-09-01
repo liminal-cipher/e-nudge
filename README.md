@@ -118,24 +118,24 @@ Azure 리소스(SQL·Blob·Custom Vision) 자격 증명이 필요하다. 교육 
 
 데이터 전처리 파이프라인, 발표 장표 구성 초안, 발표 대본 작성과 리허설은 6인 전원이 함께 했다. 아래는 그 외에 각자 맡은 일이다.
 
-| 이름 | 담당 |
-| --- | --- |
-| **Youn Jae** (Team Lead · Dev Lead) | 프로젝트 아이템 원안 · 기술 계획서 · 넛지 팝업 UX 설계 · FastAPI 백엔드 · pseudo-labeling 파이프라인 · 오퍼레이션과 협업 조율 |
-| Junsang | Custom Vision 데이터 수집·학습 · 비교 모델링 실험 · 프론트엔드 UI · Transparency Note와 RAI · 일정 관리 |
-| Kenzie | 모델링(TF-IDF) · pseudo-labeling 파이프라인 · 비교 모델링 실험 · Transparency Note와 RAI · 발표 팩트체크·리서치·영상 · 일정 관리 |
-| Yongju | FastAPI 백엔드 · DB 설계 · Azure SQL 연동과 배포(CI/CD) · Transparency Note와 RAI |
-| Yuri | 프론트엔드 UI · 발표물 제작 총괄 · 일정 관리 |
-| Juhee | 프로젝트 아이템 원안 · 발표 팩트체크·리서치·영상 · 오퍼레이션과 협업 조율 |
+| 이름 | 역할 | 담당 |
+| --- | --- | --- |
+| **Youn Jae** | Team Lead / Dev Lead | 프로젝트 아이템 원안 · 기술 계획서 · 시스템 아키텍처 공동 설계 · 넛지 팝업 및 대시보드 UX 공동 설계 · FastAPI 백엔드 · pseudo-labeling 파이프라인 · 오퍼레이션과 협업 조율 |
+| Junsang | Custom Vision | Custom Vision 데이터 수집·학습 · 비교 모델링 실험 · 프론트엔드 UI · Transparency Note와 RAI · 일정 관리 |
+| Kenzie | Modeling | 모델링(TF-IDF) · pseudo-labeling 파이프라인 · 비교 모델링 실험 · Transparency Note와 RAI · 발표 팩트체크·리서치·영상 · 일정 관리 |
+| Yongju | Backend / Database | 시스템 아키텍처 공동 설계 · FastAPI 백엔드 · DB 설계 · Azure SQL 연동과 배포(CI/CD) · Transparency Note와 RAI |
+| Yuri | Frontend | 프론트엔드 UI/UX · 발표물 제작 총괄 · PM 및 일정 관리 |
+| Juhee | Operations | 프로젝트 아이템 원안 · 발표 팩트체크·리서치·영상 · 오퍼레이션과 협업 조율 |
 
 ## My Role (조윤재)
 
 | 담당 | 산출물 |
 | --- | --- |
 | 기획 | 프로젝트 아이템 원안 · 기술 계획서 |
-| 서비스 설계 | 넛지 팝업 UX 설계 |
-| 백엔드 | FastAPI 백엔드 `main.py`, Decision Engine 분기 로직 |
+| 서비스 설계 | 시스템 아키텍처(공동) · 넛지 팝업 및 대시보드 UX(공동) |
+| 백엔드 (Dev Lead) | FastAPI 기반 ML 추론 서버, Decision Engine 분기 로직 |
 | 데이터 | pseudo-labeling 파이프라인 |
-| 팀 운영 | 오퍼레이션과 협업 조율 |
+| 팀 운영 | 팀 협업 워크플로우 및 오퍼레이션 |
 
 > 역할 분담의 정본은 팀 전원이 합의한 기여도 문서이며, 위 표는 거기서 옮긴 것이다. 일부 항목은 팀원과 함께한 작업이다. 커밋 이력은 팀 계정으로 집중돼 있어 개인별 기여를 반영하지 않는다.
 
