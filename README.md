@@ -43,7 +43,7 @@ Microsoft AI School 9기 1차 프로젝트 · 팀 고당스 (6인) · 2026.02.23
 
 | 영역 | 선택 | 이유 |
 | --- | --- | --- |
-| 분류 모델 | **ComplementNB + TF-IDF** (KcELECTRA F1 0.739 대신) | 배포 대상이 GPU 없는 Azure B2다. 성능이 더 높아도 서빙할 수 없는 모델은 서비스가 아니다. TF-IDF 가중치로 판정 근거를 설명할 수 있다는 부수 이점도 있다 |
+| 분류 모델 | **ComplementNB + TF-IDF** (KcELECTRA F1 0.739 대신) | 당시 배포 환경은 GPU 없는 Azure B2였고 실시간 댓글 응답과 2.5주 일정까지 고려해야 했다. KcELECTRA가 실시간 서빙 불가능했던 것이 아니라 추가 최적화·운영 부담을 감안해 경량 모델을 택했다 |
 | 판정 방식 | **LLM 미사용** | 댓글마다 호출하면 비용·지연이 쌓이고 판정 근거를 설명하기 어렵다. 넛지는 사용자를 설득해야 하는 기능이라 "왜"를 말할 수 있는 쪽을 택했다 |
 | 형태소 분석 | **kiwipiepy** `typos="basic"` | 커뮤니티 댓글은 오타·변형이 많다. 형태소 분석 단계에서 흡수한다 |
 | 응답 지연 | **`asyncio.gather` + `run_in_threadpool`** | 텍스트 추론·이미지 분석·Blob 업로드를 병렬화해 응답 지연을 줄인다 |
@@ -58,8 +58,8 @@ Microsoft AI School 9기 1차 프로젝트 · 팀 고당스 (6인) · 2026.02.23
 
 | 항목 | 내용 |
 |---|---|
-| 텍스트(사람 라벨) | BEEP! 한국어 혐오표현 데이터셋 7,896건, 3클래스. 분포는 none 44.1% · offensive 31.6% · hate 24.2% |
-| 텍스트(무라벨) | 커뮤니티 코퍼스 203만 건에 ComplementNB 시드 모델로 pseudo-label 부여 |
+| 텍스트(사람 라벨) | BEEP! 한국어 혐오표현 데이터셋 7,896건, 3클래스. KcELECTRA 실험에서는 Train 6,316 · Test 1,580으로 80:20 분리하고 Test를 고정했다. 분포는 none 44.1% · offensive 31.6% · hate 24.2% |
+| 텍스트(무라벨) | 커뮤니티 코퍼스 약 203만 건을 후보 pool로 두고, 클래스별 ML 라벨러의 confidence·합의 규칙으로 필터링해 371,459건의 pseudo-labeled dataset을 만들었다 |
 | 이미지 | 27,758장. 2단 구조로 Azure Custom Vision 학습 (Base는 NSFW 5클래스, K-Hate는 로고 64 + 밈 627) |
 | 라벨 난도 | BEEP! 어노테이터 간 일치도(IAA) 0.496. 사람도 절반은 갈리는 문제다 |
 
@@ -67,30 +67,31 @@ BEEP!은 Moon et al., SocialNLP@ACL 2020이다. 학습 데이터는 repo에 포�
 
 ## Evaluation
 
-- **지표**: hate F1. 소수 클래스가 관심 대상이라 accuracy는 쓰지 않는다.
-- **모델이 아니라는 것부터 확인했다**: ML 알고리즘 9종(LR · Linear SVC · OvO · RF · GBC · MNB · CNB · MLP · Voting)이 전부 accuracy 51~52%에서 수렴했고, GridSearchCV로 하이퍼파라미터 문제가 아님을 확인했다. 알고리즘을 바꿔도 천장이 같다는 것이 데이터를 의심한 근거다.
-- **pseudo를 ML로 재보니 모델마다 정반대였다**: NB는 hate F1 0.39에서 0.52로 올랐는데 LR은 0.50에서 0.34로 떨어졌다. 어느 쪽이 pseudo의 진짜 효과인지 ML만으로는 판단할 수 없었고, 이것이 모델을 고정한 통제실험으로 간 이유다.
-- **통제실험 설계**: 모델(KcELECTRA)과 평가셋을 고정하고 **학습 데이터만** 바꿨다. "표현 방식이 어려워서"와 "라벨이 나빠서"라는 두 가설을 한 실험으로 분리하기 위해서다.
-- **한계**: 단일 실행이며 시드 반복·분산 측정은 하지 않았다. 통제실험 모델은 KcELECTRA 하나다.
+- **주요 지표**: hate F1. 소수 클래스 탐지가 관심 대상이라 최종 비교는 hate F1을 중심으로 봤고, 고전 ML 탐색 단계에서는 accuracy도 함께 확인했다.
+- **모델 선택·튜닝부터 확인했다**: TF-IDF 기반 ML 알고리즘 9종(LR · Linear SVC · OvO · RF · GBC · MNB · CNB · MLP · Voting)이 비슷한 성능대에 수렴했고, GridSearchCV에서도 큰 돌파가 없었다.
+- **데이터 확장 결과가 모델마다 엇갈렸다**: pseudo 데이터를 추가해 ML 모델을 새로 학습했을 때 개선과 악화가 함께 나타나, pseudo-label 자체의 효과와 모델 특성을 분리하기 어려웠다.
+- **KcELECTRA로 재진단했다**: 먼저 사람 라벨 Train 6,316건만으로 baseline을 만들고, 같은 KcELECTRA 구성과 고정 Test 1,580에서 pseudo 추가량만 바꿨다. 각 조건은 새 모델로 초기화했다.
+- **한계**: 단일 seed 중심의 비교이며 반복 실행·분산 측정을 하지 않았다. 사람 라벨 자체의 양을 늘리는 실험도 하지 않았고, 1:1 pseudo subset의 class composition은 human train과 완전히 같지 않았을 수 있다.
 
 ## Results
 
-| 구성 | hate F1 | |
-|---|---|---|
-| KcELECTRA, 사람 라벨 7,896건만 | **0.739** | 통제실험 A |
-| KcELECTRA, + pseudo 6,316건 1:1 혼합 | 0.701 | 통제실험 B (−0.038) |
-| ComplementNB (배포 모델) | 0.52 | CPU 서빙 가능 |
+| 구성 | 학습 데이터 | hate F1 |
+|---|---|---:|
+| KcELECTRA BEFORE | Human 6,316 | **0.739** |
+| KcELECTRA AFTER-Full | Human 6,316 + Pseudo 371,459 | 0.589 |
+| KcELECTRA AFTER 1:1 | Human 6,316 + Pseudo 6,316 | 0.701 |
+| ComplementNB (배포 모델) | TF-IDF + 고전 ML | 0.52 |
 
-**pseudo를 6,316건만, 그것도 1:1로 섞었는데 전 클래스가 내려갔다.** 병목은 모델 용량이 아니라 pseudo 라벨의 품질이었다. ML 점수가 낮을 때는 pseudo가 효과 있는 것처럼 보였지만, 같은 데이터를 DL 기준으로 재니 노이즈였다.
+KcELECTRA가 human-only에서 기존 TF-IDF 기반 고전 ML보다 크게 높은 성능을 보여 **기존 표현·모델링 접근의 한계**를 확인했다. 반대로 pseudo를 371,459건 전부 추가하면 0.589, 사람 train과 같은 6,316건만 추가해도 0.701로 human-only baseline보다 낮았다. 당시 만든 **pseudo-label의 품질도 충분하지 않았다**는 결론이다.
 
-203만 건을 만들어 두고도 소량 혼합에서 이미 하락이 나왔기 때문에 전량 투입은 하지 않았다. "데이터가 많을수록 좋다"가 라벨 노이즈 앞에서 뒤집히는 것을 확인한 지점이고, 사람이 라벨링하는 피드백 루프를 다음 단계로 잡은 근거다.
+프로젝트가 직접 보여준 것은 `좋은 소량 human label > 당시의 대량 pseudo-label`이다. 더 많은 고품질 human label이 더 좋을지는 합리적인 기대지만, 이 프로젝트에서는 직접 실험하지 않았다.
 
 ## Model & Inference
 
 - 배포 모델은 **ComplementNB**다. 파일명 `lr_model.pkl`은 초기 로지스틱 회귀 시절의 잔재이며 내용물은 ComplementNB다.
 - CPU 추론(Azure B2), 추론 시간은 요청마다 DB에 로깅.
 - Azure ML Designer의 API 이슈로 서빙 경로를 바꿔, 학습된 `.pkl`을 FastAPI에 직접 탑재하는 방식으로 갔다.
-- KcELECTRA(0.739)는 GPU 서빙 비용 때문에 배포하지 못했다. 대신 2단계로 나눴다. Phase 1은 ML로 빠르게 배포해 판정 근거를 설명할 수 있게 하고, Phase 2에서 피드백 루프로 사용자 라벨이 쌓이면 KcELECTRA fine-tuning으로 전환한다. 이 격차가 모델 경량화(양자화·distillation)를 공부하게 된 동기다.
+- KcELECTRA(0.739)는 당시 CPU B2 · 실시간 댓글 응답 · 2.5주 일정에서 추론과 운영 부담이 더 컸다. 실시간 서빙이 불가능해서가 아니라 정확도·지연시간·인프라·일정의 trade-off로 ComplementNB를 배포했다. 향후에는 넛지 후 수정·철회·무시 같은 행동 신호를 검증·정제해 학습 데이터 후보로 쓰는 방향을 제안했지만, 이 피드백 루프는 구현하지 않았다.
 
 ## Getting Started
 
@@ -107,9 +108,9 @@ Azure 리소스(SQL·Blob·Custom Vision) 자격 증명이 필요하다. 교육 
 
 | 원칙 | 적용 |
 | --- | --- |
-| 투명성 | TF-IDF 계수로 판정 근거 추출 · 관리자에게 toxicity score 수치 공개 · Transparency Note 작성 |
-| 책임성 | AI 판정과 사용자 행동 전부 기록 · 오탐 신고를 재학습 데이터로 환류 · 최종 삭제 권한은 관리자 · RAI Impact Assessment로 위험과 대응 문서화 |
-| 공정성 | 사람이 라벨링한 BEEP! 데이터 사용 · 텍스트(NLP)와 이미지(CV) 결과 교차 검증 · 신고 데이터로 편향 수정 |
+| 투명성 | 관리자에게 toxicity score 수치 공개 · Transparency Note 작성. 사용자-facing 특징 기여 설명 UI/API는 구현하지 않았다 |
+| 책임성 | AI 판정과 사용자 행동 기록 · 최종 삭제 권한은 관리자 · RAI Impact Assessment로 위험과 대응 문서화 · 신고와 행동 신호의 재학습 활용은 향후 검증·정제 과제로 제안 |
+| 공정성 | 사람이 라벨링한 BEEP! 데이터 사용 · 텍스트(NLP)와 이미지(CV) 결과 교차 검증 · 신고 데이터는 향후 편향 점검 신호로 활용하는 방향을 제안 |
 | 신뢰성 | none·offensive·hate 3단계 점진 개입 · "AI 판정 결과입니다" 한계 고지 · 텍스트·이미지 이중 판정 · 신고와 관리자 검토로 오탐·미탐 보완 |
 | 개인정보·보안 | toxicity score 중심 저장, 원문 최소 보존 · 첫 접속 시 수집·이용 동의 · 이미지 원본은 Blob 보안 URL · 댓글 데이터와 관리 로그 분리 |
 | 포용성 | 장애인 비하·성차별 등 사회적 약자 대상 혐오를 별도로 고려 · 차단이 아닌 넛지로 낙인과 역차별 우려를 완화 · 색상·아이콘·텍스트를 함께 써서 접근성 보완 |
@@ -120,7 +121,7 @@ Azure 리소스(SQL·Blob·Custom Vision) 자격 증명이 필요하다. 교육 
 
 | 이름 | 역할 | 담당 |
 | --- | --- | --- |
-| **Youn Jae** | Team Lead / Dev Lead | 프로젝트 아이템 원안 · 기술 계획서 · 시스템 아키텍처 공동 설계 · 넛지 팝업 및 대시보드 UX 공동 설계 · FastAPI 백엔드 · pseudo-labeling 파이프라인 · 오퍼레이션과 협업 조율 |
+| **Youn Jae** | Team Lead / Dev Lead | 프로젝트 아이템 원안 · 기술 계획서 · 시스템 아키텍처 공동 설계 · 넛지 팝업 및 대시보드 UX 공동 설계 · FastAPI 백엔드 · pseudo-labeling 파이프라인 공동 구축 · 데이터 품질 가설 공동 검토와 KcELECTRA 결과 해석 · 최종 발표 모델링 파트 전체 · 오퍼레이션과 협업 조율 |
 | Junsang | Custom Vision | Custom Vision 데이터 수집·학습 · 비교 모델링 실험 · 프론트엔드 UI · Transparency Note와 RAI · 일정 관리 |
 | Kenzie | Modeling | 모델링(TF-IDF) · pseudo-labeling 파이프라인 · 비교 모델링 실험 · Transparency Note와 RAI · 발표 팩트체크·리서치·영상 · 일정 관리 |
 | Yongju | Backend / Database | 시스템 아키텍처 공동 설계 · FastAPI 백엔드 · DB 설계 · Azure SQL 연동과 배포(CI/CD) · Transparency Note와 RAI |
@@ -134,7 +135,8 @@ Azure 리소스(SQL·Blob·Custom Vision) 자격 증명이 필요하다. 교육 
 | 기획 | 프로젝트 아이템 원안 · 기술 계획서 |
 | 서비스 설계 | 시스템 아키텍처(공동) · 넛지 팝업 및 대시보드 UX(공동) |
 | 백엔드 (Dev Lead) | FastAPI 기반 ML 추론 서버, Decision Engine 분기 로직 |
-| 데이터 | pseudo-labeling 파이프라인 |
+| 데이터·분석 | pseudo-labeling 파이프라인 공동 구축 · 데이터 품질 가설 공동 검토 · KcELECTRA 통제실험 결과 해석 |
+| 발표 | 최종 발표에서 모델링 파트 전체 담당 |
 | 팀 운영 | 팀 협업 워크플로우 및 오퍼레이션 |
 
 > 역할 분담의 정본은 팀 전원이 합의한 기여도 문서이며, 위 표는 거기서 옮긴 것이다. 일부 항목은 팀원과 함께한 작업이다. 커밋 이력은 팀 계정으로 집중돼 있어 개인별 기여를 반영하지 않는다.
@@ -142,8 +144,8 @@ Azure 리소스(SQL·Blob·Custom Vision) 자격 증명이 필요하다. 교육 
 ## Retrospective
 
 - **다시 한다면 경량화를 먼저 검토한다.** KcELECTRA 0.739를 두고 0.52를 배포한 것은 인프라 제약 때문이었다. 양자화·distillation으로 그 격차를 좁히는 것이 다음 단계다.
-- **pseudo-labeling 전에 라벨 감사부터.** 37만 건을 만들고 나서 품질 문제를 발견했다. 시드 모델의 신뢰도 분포를 먼저 검사했으면 실험 한 사이클을 줄일 수 있었다.
+- **pseudo-labeling 전에 라벨 감사를 먼저 했어야 한다.** 약 203만 후보에서 371,459건을 채택한 뒤 품질 문제를 확인했다. 라벨러별 신뢰도와 합의 규칙을 먼저 감사했으면 실험 한 사이클을 줄일 수 있었다.
 
 ## Status
 
-완료. Microsoft AI School 9기 1차 프로젝트로 2026.02.23 ~ 03.10 진행. Azure 배포는 종료됐고 코드·발표 자료·데모 영상만 남아 있다. 마지막 갱신 2026-08-11.
+완료. Microsoft AI School 9기 1차 프로젝트로 2026.02.23 ~ 03.10 진행. Azure 배포는 종료됐고 코드·발표 자료·데모 영상만 남아 있다. 마지막 갱신 2026-09-07.
