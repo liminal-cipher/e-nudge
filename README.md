@@ -7,7 +7,7 @@
 ![scikit--learn](https://img.shields.io/badge/scikit--learn-ComplementNB-F7931E?logo=scikitlearn&logoColor=white)
 ![Azure](https://img.shields.io/badge/Azure-SQL%20%7C%20Blob%20%7C%20Custom%20Vision-0078D4)
 
-Microsoft AI School 9기 1차 프로젝트 · 팀 고당스 (6인) · 2026.02.23 ~ 03.10 · **프로젝트 평가 1위**
+Microsoft AI School 9기 1차 프로젝트 · 팀 고당스 (6인) · 2026.02.23 ~ 2026.03.10 · **프로젝트 평가 1위**
 
 [발표 자료](docs/presentation.pdf) · [데모 영상](docs/demo.mp4)
 
@@ -148,4 +148,4 @@ Azure 리소스(SQL·Blob·Custom Vision) 자격 증명이 필요하다. 교육 
 
 ## Status
 
-완료. Microsoft AI School 9기 1차 프로젝트로 2026.02.23 ~ 03.10 진행. Azure 배포는 종료됐고 코드·발표 자료·데모 영상만 남아 있다. 마지막 갱신 2026-09-07.
+완료. Microsoft AI School 9기 1차 프로젝트로 2026.02.23 ~ 2026.03.10 진행. Azure 배포는 종료됐고 코드·발표 자료·데모 영상만 남아 있다. 마지막 갱신 2026-09-21.
