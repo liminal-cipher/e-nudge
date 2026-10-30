@@ -59,7 +59,7 @@ Microsoft AI School 9기 1차 프로젝트 · 팀 고당스 (6인) · 2026.02.23
 | 항목 | 내용 |
 |---|---|
 | 텍스트(사람 라벨) | BEEP! 한국어 혐오표현 데이터셋 7,896건, 3클래스. KcELECTRA 실험에서는 Train 6,316 · Test 1,580으로 80:20 분리하고 Test를 고정했다. 분포는 none 44.1% · offensive 31.6% · hate 24.2% |
-| 텍스트(무라벨) | 커뮤니티 코퍼스 약 203만 건을 후보 pool로 두고, 클래스별 ML 라벨러의 confidence·합의 규칙으로 필터링해 371,459건의 pseudo-labeled dataset을 만들었다 |
+| 텍스트(무라벨) | 커뮤니티 코퍼스 약 203만 건을 후보 pool로 두고, 클래스별 ML 라벨러의 confidence·합의 규칙으로 필터링해 371,459건의 pseudo-labelled dataset을 만들었다 |
 | 이미지 | 27,758장. 2단 구조로 Azure Custom Vision 학습 (Base는 NSFW 5클래스, K-Hate는 로고 64 + 밈 627) |
 | 라벨 난도 | BEEP! 어노테이터 간 일치도(IAA) 0.496. 사람도 절반은 갈리는 문제다 |
 
@@ -121,9 +121,9 @@ Azure 리소스(SQL·Blob·Custom Vision) 자격 증명이 필요하다. 교육 
 
 | 이름 | 역할 | 담당 |
 | --- | --- | --- |
-| **Youn Jae** | Team Lead / Dev Lead | 프로젝트 아이템 원안 · 기술 계획서 · 시스템 아키텍처 공동 설계 · 넛지 팝업 및 대시보드 UX 공동 설계 · FastAPI 백엔드 · pseudo-labeling 파이프라인 공동 구축 · 데이터 품질 가설 공동 검토와 KcELECTRA 결과 해석 · 최종 발표 모델링 파트 전체 · 오퍼레이션과 협업 조율 |
+| **Youn Jae** | Team Lead / Dev Lead | 프로젝트 아이템 원안 · 기술 계획서 · 시스템 아키텍처 공동 설계 · 넛지 팝업 및 대시보드 UX 공동 설계 · FastAPI 백엔드 · pseudo-labelling 파이프라인 공동 구축 · 데이터 품질 가설 공동 검토와 KcELECTRA 결과 해석 · 최종 발표 모델링 파트 전체 · 오퍼레이션과 협업 조율 |
 | Junsang | Custom Vision | Custom Vision 데이터 수집·학습 · 비교 모델링 실험 · 프론트엔드 UI · Transparency Note와 RAI · 일정 관리 |
-| Kenzie | Modeling | 모델링(TF-IDF) · pseudo-labeling 파이프라인 · 비교 모델링 실험 · Transparency Note와 RAI · 발표 팩트체크·리서치·영상 · 일정 관리 |
+| Kenzie | Modelling | 모델링(TF-IDF) · pseudo-labelling 파이프라인 · 비교 모델링 실험 · Transparency Note와 RAI · 발표 팩트체크·리서치·영상 · 일정 관리 |
 | Yongju | Backend / Database | 시스템 아키텍처 공동 설계 · FastAPI 백엔드 · DB 설계 · Azure SQL 연동과 배포(CI/CD) · Transparency Note와 RAI |
 | Yuri | Frontend | 프론트엔드 UI/UX · 발표물 제작 총괄 · PM 및 일정 관리 |
 | Juhee | Operations | 프로젝트 아이템 원안 · 발표 팩트체크·리서치·영상 · 오퍼레이션과 협업 조율 |
@@ -135,7 +135,7 @@ Azure 리소스(SQL·Blob·Custom Vision) 자격 증명이 필요하다. 교육 
 | 기획 | 프로젝트 아이템 원안 · 기술 계획서 |
 | 서비스 설계 | 시스템 아키텍처(공동) · 넛지 팝업 및 대시보드 UX(공동) |
 | 백엔드 (Dev Lead) | FastAPI 기반 ML 추론 서버, Decision Engine 분기 로직 |
-| 데이터·분석 | pseudo-labeling 파이프라인 공동 구축 · 데이터 품질 가설 공동 검토 · KcELECTRA 통제실험 결과 해석 |
+| 데이터·분석 | pseudo-labelling 파이프라인 공동 구축 · 데이터 품질 가설 공동 검토 · KcELECTRA 통제실험 결과 해석 |
 | 발표 | 최종 발표에서 모델링 파트 전체 담당 |
 | 팀 운영 | 팀 협업 워크플로우 및 오퍼레이션 |
 
@@ -144,7 +144,7 @@ Azure 리소스(SQL·Blob·Custom Vision) 자격 증명이 필요하다. 교육 
 ## Retrospective
 
 - **다시 한다면 경량화를 먼저 검토한다.** KcELECTRA 0.739를 두고 0.52를 배포한 것은 인프라 제약 때문이었다. 양자화·distillation으로 그 격차를 좁히는 것이 다음 단계다.
-- **pseudo-labeling 전에 라벨 감사를 먼저 했어야 한다.** 약 203만 후보에서 371,459건을 채택한 뒤 품질 문제를 확인했다. 라벨러별 신뢰도와 합의 규칙을 먼저 감사했으면 실험 한 사이클을 줄일 수 있었다.
+- **pseudo-labelling 전에 라벨 감사를 먼저 했어야 한다.** 약 203만 후보에서 371,459건을 채택한 뒤 품질 문제를 확인했다. 라벨러별 신뢰도와 합의 규칙을 먼저 감사했으면 실험 한 사이클을 줄일 수 있었다.
 
 ## Status
 

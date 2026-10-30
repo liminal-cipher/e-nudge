@@ -32,8 +32,8 @@ jobs:
           source antenv/bin/activate
           pip install -r requirements.txt
 
-      # By default, when you enable GitHub CI/CD integration through the Azure portal, the platform automatically sets the SCM_DO_BUILD_DURING_DEPLOYMENT application setting to true. This triggers the use of Oryx, a build engine that handles application compilation and dependency installation (e.g., pip install) directly on the platform during deployment. Hence, we exclude the antenv virtual environment directory from the deployment artifact to reduce the payload size.
-      - name: Upload artifact for deployment jobs
+      # By default, when you enable GitHub CI/CD integration through the Azure portal, the platform automatically sets the SCM_DO_BUILD_DURING_DEPLOYMENT application setting to true. This triggers the use of Oryx, a build engine that handles application compilation and dependency installation (e.g., pip install) directly on the platform during deployment. Hence, we exclude the antenv virtual environment directory from the deployment artefact to reduce the payload size.
+      - name: Upload artefact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
@@ -51,7 +51,7 @@ jobs:
       contents: read #This is required for actions/checkout
 
     steps:
-      - name: Download artifact from build job
+      - name: Download artefact from build job
         uses: actions/download-artifact@v4
         with:
           name: python-app

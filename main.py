@@ -34,7 +34,7 @@ app = FastAPI()
 
 # Architecture: TF-IDF Vectorizer + CNB 
 
-# Training: Pseudo-labeling with ComplementNB seed model 
+# Training: Pseudo-labelling with ComplementNB seed model
 
 # ============================================ 
 # --- [0. AI 모델 설정값] ---
@@ -71,7 +71,7 @@ except Exception as e:
 
 # Steps: emoji removal > URL strip > special char filter > 
 
-#        character dedup > Kiwi Korean tokenization > POS filtering 
+#        character dedup > Kiwi Korean tokenisation > POS filtering
 
 # KEEP_TAGS: NNG, NNP, NP, VV, VA, MAG, MM, SW, IC 
 
